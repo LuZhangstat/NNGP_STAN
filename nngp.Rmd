@@ -33,7 +33,7 @@ knitr::opts_chunk$set(echo = TRUE, tidy = F, warning=FALSE, comment=NA)
 
 
 # NNGP Based Models
-Nearest Neighbor Gaussian Processes (NNGP) based models is a family of highly scaleable Gaussian processes based models. In brief, NNGP extends the Vecchia's approximation (@ve88) to a process using conditional independence given information from neighboring locations. In this section, I will briefly review response and random-effects NNGP models. For more details of NNGP, please refer to @datta2016hierarchical. 
+Nearest Neighbor Gaussian Processes (NNGP) based models is a family of highly scalable Gaussian processes based models. In brief, NNGP extends the Vecchia's approximation (@ve88) to a process using conditional independence given information from neighboring locations. In this section, I will briefly review response and random-effects NNGP models. For more details of NNGP, please refer to @datta2016hierarchical. 
 
 ## Spatial regression model
 We envision a spatial regression model at any location $s$
@@ -68,16 +68,16 @@ where $\{C_\theta + \tau^2 I\}^{*-1} = (I-A)^\top D^{-1}(I-A)$, analogous to ran
 
 
 ## Construction of $A$, $D$
-The details of the Matrix $A$, $D$ and two models can be found in @finley2017applying. Here we use the random-effects NNGP model to show how to construct matrix $A$ and $D$. Let $N(s_i)$ be at most $M$ closest points to $s_i$ among the locations indexed less that $i$. For the $i$ th row ($i > 1$) of $A$, the nonzero entries appear in the positions indexed by $N(s_i)$ are obtained as row vectors
+The details of the Matrix $A$, $D$ and two models can be found in @finley2017applying. Here we use the response NNGP model to show how to construct matrix $A$ and $D$. Let $N(s_i)$ be at most $M$ closest points to $s_i$ among the locations indexed less that $i$. For the $i$ th row ($i > 1$) of $A$, the nonzero entries appear in the positions indexed by $N(s_i)$ are obtained as row vectors
 \begin{equation} \label{eq: A_construct}
-A(i, N(s_i)) = C_\theta(s_i, N(s_i))C_\theta(N(s_i), N(s_i))^{-1}
+A(i, N(s_i)) = C_\theta(s_i, N(s_i))(C_\theta(N(s_i), N(s_i)) + \tau^2I)^{-1}
 \end{equation}
 And the $i$ th element on the diagonal of $D$ satisfies
 \begin{equation} \label{eq: D_construct}
-D(i, i) = C_\theta(s_i, s_i) -  
-C_\theta(s_i, N(s_i))C_\theta(N(s_i), N(s_i))^{-1}C_\theta(N(s_i), s_i)
+D(i, i) = C_\theta(s_i, s_i) + \tau^2 -  
+C_\theta(s_i, N(s_i))(C_\theta(N(s_i), N(s_i)) + \tau^2I)^{-1}C_\theta(N(s_i), s_i)
 \end{equation}
-These equations are derived from the distribution of $E[w(s_i) | w(N(s_i))]$. The nonzero entries in each row of $A$ are precisely the weights obtained by predicting $w(s_i)$, or "kriging", based upon the values of $w(s)$ at neighboring locations, i.e., $N(s_i)$. And the diagonal elements in $D$ are the variance of $w(s_i)$ conditioning on its' neighbors in the "past" $w(N(s_i))$.
+These equations are derived from the distribution of $E[y(s_i) | y(N(s_i))]$. The nonzero entries in each row of $A$ are precisely the weights obtained by predicting $y(s_i)$, or "kriging", based upon the values of $y(s)$ at neighboring locations, i.e., $N(s_i)$. And the diagonal elements in $D$ are the variance of $y(s_i)$ conditioning on its' neighbors in the "past" $y(N(s_i))$.
 
 
 # Code NNGP Based Model in Stan

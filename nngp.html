@@ -267,7 +267,7 @@ MathJax.Hub.Config({
 </script>
 <div id="nngp-based-models" class="section level1">
 <h1><span class="header-section-number">1</span> NNGP Based Models</h1>
-<p>Nearest Neighbor Gaussian Processes (NNGP) based models is a family of highly scaleable Gaussian processes based models. In brief, NNGP extends the Vecchia’s approximation (<span class="citation">Vecchia (1988)</span>) to a process using conditional independence given information from neighboring locations. In this section, I will briefly review response and random-effects NNGP models. For more details of NNGP, please refer to <span class="citation">Datta et al. (2016)</span>.</p>
+<p>Nearest Neighbor Gaussian Processes (NNGP) based models is a family of highly scalable Gaussian processes based models. In brief, NNGP extends the Vecchia’s approximation (<span class="citation">Vecchia (1988)</span>) to a process using conditional independence given information from neighboring locations. In this section, I will briefly review response and random-effects NNGP models. For more details of NNGP, please refer to <span class="citation">Datta et al. (2016)</span>.</p>
 <div id="spatial-regression-model" class="section level2">
 <h2><span class="header-section-number">1.1</span> Spatial regression model</h2>
 We envision a spatial regression model at any location <span class="math inline">\(s\)</span>
@@ -299,16 +299,16 @@ p(\theta \;|\; y(S)) \propto p(\theta) \times N(y(S)\;|\;m_{\theta}(S), \{C_\the
 </div>
 <div id="construction-of-a-d" class="section level2">
 <h2><span class="header-section-number">1.3</span> Construction of <span class="math inline">\(A\)</span>, <span class="math inline">\(D\)</span></h2>
-The details of the Matrix <span class="math inline">\(A\)</span>, <span class="math inline">\(D\)</span> and two models can be found in <span class="citation">Finley et al. (2017)</span>. Here we use the random-effects NNGP model to show how to construct matrix <span class="math inline">\(A\)</span> and <span class="math inline">\(D\)</span>. Let <span class="math inline">\(N(s_i)\)</span> be at most <span class="math inline">\(M\)</span> closest points to <span class="math inline">\(s_i\)</span> among the locations indexed less that <span class="math inline">\(i\)</span>. For the <span class="math inline">\(i\)</span> th row (<span class="math inline">\(i &gt; 1\)</span>) of <span class="math inline">\(A\)</span>, the nonzero entries appear in the positions indexed by <span class="math inline">\(N(s_i)\)</span> are obtained as row vectors
+The details of the Matrix <span class="math inline">\(A\)</span>, <span class="math inline">\(D\)</span> and two models can be found in <span class="citation">Finley et al. (2017)</span>. Here we use the response NNGP model to show how to construct matrix <span class="math inline">\(A\)</span> and <span class="math inline">\(D\)</span>. Let <span class="math inline">\(N(s_i)\)</span> be at most <span class="math inline">\(M\)</span> closest points to <span class="math inline">\(s_i\)</span> among the locations indexed less that <span class="math inline">\(i\)</span>. For the <span class="math inline">\(i\)</span> th row (<span class="math inline">\(i &gt; 1\)</span>) of <span class="math inline">\(A\)</span>, the nonzero entries appear in the positions indexed by <span class="math inline">\(N(s_i)\)</span> are obtained as row vectors
 <span class="math display">\[\begin{equation} \label{eq: A_construct}
-A(i, N(s_i)) = C_\theta(s_i, N(s_i))C_\theta(N(s_i), N(s_i))^{-1}
+A(i, N(s_i)) = C_\theta(s_i, N(s_i))(C_\theta(N(s_i), N(s_i)) + \tau^2I)^{-1}
 \end{equation}\]</span>
 And the <span class="math inline">\(i\)</span> th element on the diagonal of <span class="math inline">\(D\)</span> satisfies
 <span class="math display">\[\begin{equation} \label{eq: D_construct}
-D(i, i) = C_\theta(s_i, s_i) -  
-C_\theta(s_i, N(s_i))C_\theta(N(s_i), N(s_i))^{-1}C_\theta(N(s_i), s_i)
+D(i, i) = C_\theta(s_i, s_i) + \tau^2 -  
+C_\theta(s_i, N(s_i))(C_\theta(N(s_i), N(s_i)) + \tau^2I)^{-1}C_\theta(N(s_i), s_i)
 \end{equation}\]</span>
-<p>These equations are derived from the distribution of <span class="math inline">\(E[w(s_i) | w(N(s_i))]\)</span>. The nonzero entries in each row of <span class="math inline">\(A\)</span> are precisely the weights obtained by predicting <span class="math inline">\(w(s_i)\)</span>, or “kriging”, based upon the values of <span class="math inline">\(w(s)\)</span> at neighboring locations, i.e., <span class="math inline">\(N(s_i)\)</span>. And the diagonal elements in <span class="math inline">\(D\)</span> are the variance of <span class="math inline">\(w(s_i)\)</span> conditioning on its’ neighbors in the “past” <span class="math inline">\(w(N(s_i))\)</span>.</p>
+<p>These equations are derived from the distribution of <span class="math inline">\(E[y(s_i) | y(N(s_i))]\)</span>. The nonzero entries in each row of <span class="math inline">\(A\)</span> are precisely the weights obtained by predicting <span class="math inline">\(y(s_i)\)</span>, or “kriging”, based upon the values of <span class="math inline">\(y(s)\)</span> at neighboring locations, i.e., <span class="math inline">\(N(s_i)\)</span>. And the diagonal elements in <span class="math inline">\(D\)</span> are the variance of <span class="math inline">\(y(s_i)\)</span> conditioning on its’ neighbors in the “past” <span class="math inline">\(y(N(s_i))\)</span>.</p>
 </div>
 </div>
 <div id="code-nngp-based-model-in-stan" class="section level1">
@@ -826,7 +826,7 @@ tausq   1.01
 phi     1.01
 lp__    1.00
 
-Samples were drawn using NUTS(diag_e) at Tue Nov 14 23:21:09 2017.
+Samples were drawn using NUTS(diag_e) at Wed Nov 15 11:46:16 2017.
 For each parameter, n_eff is a crude measure of effective sample size,
 and Rhat is the potential scale reduction factor on split chains (at 
 convergence, Rhat=1).</code></pre>
@@ -853,7 +853,7 @@ w[2]     0.99    0.09 0.32  0.43  0.78  0.97  1.19  1.68    13 1.08
 w[3]    -2.84    0.18 0.34 -3.43 -3.09 -2.85 -2.60 -2.18     4 1.30
 w[4]    -0.49    0.12 0.31 -1.04 -0.72 -0.51 -0.26  0.11     7 1.14
 
-Samples were drawn using NUTS(diag_e) at Tue Nov 14 23:27:49 2017.
+Samples were drawn using NUTS(diag_e) at Wed Nov 15 11:52:59 2017.
 For each parameter, n_eff is a crude measure of effective sample size,
 and Rhat is the potential scale reduction factor on split chains (at 
 convergence, Rhat=1).</code></pre>
@@ -879,7 +879,7 @@ w_b1[2]  1.69    0.01 0.30  1.08  1.49  1.68  1.90  2.22   600 1.00
 w_b1[3] -2.08    0.01 0.27 -2.63 -2.25 -2.07 -1.89 -1.52   600 1.00
 w_b1[4]  0.24    0.01 0.29 -0.43  0.07  0.24  0.43  0.79   600 1.00
 
-Samples were drawn using NUTS(diag_e) at Tue Nov 14 23:30:30 2017.
+Samples were drawn using NUTS(diag_e) at Wed Nov 15 11:55:42 2017.
 For each parameter, n_eff is a crude measure of effective sample size,
 and Rhat is the potential scale reduction factor on split chains (at 
 convergence, Rhat=1).</code></pre>
