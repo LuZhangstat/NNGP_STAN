@@ -315,12 +315,42 @@ ss = 3 * sqrt(2)       # scale parameter in the normal prior of sigma
 st = 3 * sqrt(0.1)     # scale parameter in the normal prior of tau     
 ap = 3/1; bp = 3/0.1   # upper and lower bound of phi 
 ```
+## Response NNGP models in Stan
+The following chunk is the R code for running response NNGP models:
+```{r, message = F, results = 'hide', eval = T} 
+library(rstan)
+options(mc.cores = parallel::detectCores())
+data <- list(N = N, M = M, P = P, Y = m.c$y.ord, X = m.c$X.ord, 
+             NN_ind = NN.matrix$NN_ind, NN_dist = NN.matrix$NN_dist, 
+             NN_distM = NN.matrix$NN_distM,  
+             uB = rep(0, P + 1), VB = diag(P + 1)*1000,
+             ss = ss, st = st, ap = ap, bp = bp)
+
+myinits <-list(list(beta = c(1, 5), sigma = 1, tau = 0.4, phi = 20), 
+               list(beta = c(5, 5), sigma = 1.5, tau = 0.2, phi = 5), 
+               list(beta = c(0, 0), sigma = 2.5, tau = 0.1, phi = 9))
+
+parameters <- c("beta", "sigmasq", "tausq", "phi")
+samples <- stan(
+  file = "nngp_response.stan",
+  data = data,
+  init = myinits,
+  pars = parameters,
+  iter = 400, 
+  chains = 3,
+  thin = 1,
+  seed = 123
+)
+```
+
+The full Stan program for response NNGP model is in the file "nngp_response.stan". 
+```{r}
+writeLines(readLines('nngp_response.stan'))
+```
 
 ## Random-effects NNGP models for simulation study
 The following chunk is the R code for running Random-effects NNGP models:
 ```{r, message = F, results = 'hide', eval = T}
-library(rstan)
-library(shinystan)
 options(mc.cores = parallel::detectCores())
 data <- list(N = N, M = M, P = P, Y = m.c$y.ord, X = m.c$X.ord, 
              NN_ind = NN.matrix$NN_ind, NN_dist = NN.matrix$NN_dist, 
@@ -354,42 +384,17 @@ writeLines(readLines('nngp_random_b1.stan'))
 ```
 
 
-
-## Response NNGP models in Stan
-The following chunk is the R code for running response NNGP models:
-```{r, message = F, results = 'hide', eval = T} 
-options(mc.cores = parallel::detectCores())
-data <- list(N = N, M = M, P = P, Y = m.c$y.ord, X = m.c$X.ord, 
-             NN_ind = NN.matrix$NN_ind, NN_dist = NN.matrix$NN_dist, 
-             NN_distM = NN.matrix$NN_distM,  
-             uB = rep(0, P + 1), VB = diag(P + 1)*1000,
-             ss = ss, st = st, ap = ap, bp = bp)
-
-myinits <-list(list(beta = c(1, 5), sigma = 1, tau = 0.4, phi = 20), 
-               list(beta = c(5, 5), sigma = 1.5, tau = 0.2, phi = 5), 
-               list(beta = c(0, 0), sigma = 2.5, tau = 0.1, phi = 9))
-
-parameters <- c("beta", "sigmasq", "tausq", "phi")
-samples <- stan(
-  file = "nngp_response.stan",
-  data = data,
-  init = myinits,
-  pars = parameters,
-  iter = 400, 
-  chains = 3,
-  thin = 1,
-  seed = 123
-)
-```
-
-The full Stan program for response NNGP model is in the file "nngp_response.stan". 
-```{r}
-writeLines(readLines('nngp_response.stan'))
-```
-
-
 # Results and Discussion
-In this section, we will show the results of the simulation study, compare random-effects and response NNGP models, and provide suggestions on how to use NNGP based models.
+In this section, we will show the results of the simulation study, compare response and random-effects NNGP models, and provide suggestions on how to use NNGP based models.
+
+
+## Response NNGP model for simulation study
+
+Response NNGP model is faster and easier to sample from posterior distribution than the random-effects NNGP models. The following shows the summary table and trace plot of the posterior samples from response NNGP model. 
+```{r, fig.align="center", eval = T}
+print(samples)
+stan_trace(samples)
+```
 
 ## Random-effects NNGP models for simulation study
 The following gives the summary table posterior samples and trace plots of the MCMC Chains from random-effects NNGP model:
@@ -399,7 +404,8 @@ print(samples_w, pars = c("beta", "sigmasq", "tausq", "phi", "w[1]", "w[2]",
 stan_trace(samples_w, pars = c("beta", "sigmasq", "tausq", "phi", "w[1]", 
                                "w[2]","w[3]", "w[4]"))
 ```
-The parameters to be estimated in a random-effects NNGP model $\{\theta, w\}$ are highly correlated, and the number of parameters is on the scale of the number of observations. Thus the convergence rate of MCMC chains from a random-effects NNGP is slow because of the high correlation and dimension of the parameter space. 
+
+It is not surprising to see a slower convergence rate and worse mixing of the MCMC Chains. Response NNGP model marginalizes out the spatial effects $w$, yields a lower-dimensional parameter space, hence drastically improves the posterior geometry. While the parameters to be estimated in a random-effects NNGP model $\{\theta, w\}$ are highly correlated, and the number of parameters is on the scale of the number of observations. Thus the convergence rate of MCMC chains from a random-effects NNGP is slow because of the high correlation and dimension of the parameter space. 
 
 Notice the trace plot of random-effects $w$ are highly correlated with the intercept, we modified the code and make the random-effects $w(s)$ centered at the intercept. The code of modified random-effects NNGP model can be found in "nngp.R" and "nngp_random_b1.stan". Here we suppress the details of the code and show the results directly:
 
@@ -438,16 +444,9 @@ stan_trace(samples_wb1, pars = c("beta", "sigmasq", "tausq", "phi", "w_b1[1]",
                                  "w_b1[2]", "w_b1[3]", "w_b1[4]"))
 ```
 
-## Response NNGP model for simulation study
+##Discussion
 
-Response NNGP model is faster and easier to sample from posterior distribution than the random-effects NNGP models. The following shows the summary table and trace plot of the posterior samples from response NNGP model. 
-```{r, fig.align="center", eval = T}
-print(samples_resp)
-stan_trace(samples_resp)
-```
-It is not surprising to see a great improvement of convergence and mixing of the MCMC Chains. Response NNGP model marginalizes out the spatial effects $w$, yields a lower-dimensional parameter space, hence drastically improves the posterior geometry. 
-
-We recommend a response NNGP model for a large scale data analysis when the study focuses on the inference of parameter set $\theta$. On the other hand, random-effects NNGP models are preferred when the study needs the recovery of latent process $w(s)$, which is not allowed by the response NNGP model. However, the convergence rate of the MCMC Chains from random-effects model could be prohibitively slow when the sample size is large, so we only recommend coding random-effects NNGP model in Stan when the sample size is small. For recovering latent process when the sample size is large, Package spNNGP provides an algorithm for random-effects NNGP model, which implements a "sequential" Gibbs sampler for updating the latent process. Conjugate NNGP models are also good options for recovering latent process $w(s)$. More details of NNGP based models can be found in @finley2017applying  
+We recommend a response NNGP model for a large scale data analysis when the study focuses on the inference of parameter set $\theta$. On the other hand, random-effects NNGP models are preferred when the study needs the recovery of latent process $w(s)$. However, the convergence rate of the MCMC Chains from random-effects model could be prohibitively slow when the sample size is large, so we only recommend coding random-effects NNGP model in Stan when the sample size is small. For recovering latent process when the sample size is large, Package spNNGP provides an algorithm for random-effects NNGP model, which implements a "sequential" Gibbs sampler for updating the latent process. Conjugate NNGP models are also good options for recovering latent process $w(s)$. More details of NNGP based models can be found in @finley2017applying  
 
 # References
 
