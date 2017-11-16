@@ -38,16 +38,16 @@ Nearest Neighbor Gaussian Processes (NNGP) based models is a family of highly sc
 ## Spatial regression model
 We envision a spatial regression model at any location $s$
 \begin{equation}\label{eq: spatial_regression_model}
- y(s) = m_{\theta}(s) + w(s) + \epsilon(s)\;,\quad \epsilon(s) \stackrel{iid}{\sim} N(0,\tau^2)\ 
+ y(s) = m_{\theta}(s) + w(s) + \epsilon(s)\;,\quad \epsilon(s) \stackrel{iid}{\sim}  \mathcal{N}(0,\tau^2)\ 
 \end{equation}
 where, usually, $m_{\theta}(s) = x(s)^{\top}\beta$ and $w(s)$ is a latent spatial process capturing spatial dependence. Let $S$ be the set of $n$ observed locations.
 If we model the process $w(s)$ with a Gaussian process $w(s) \sim GP(0, C_\theta(\cdot, \cdot))$, then a customary Bayesian hierarchical models for observations on $S = \{s_1, \ldots, s_N\}$ can be constructed as
 \begin{equation}\label{eq: random-effects model}
-p(\theta) \times N(w(S)\;|\;0, C_\theta(S,S)) \times N(y(S)\;|\; m_\theta(S) + w(S), \tau^2 I_n)
+\mathcal{p}(\theta) \; \times \; \mathcal{N}(w(S)\;|\;0, C_\theta(S,S)) \; \times \; \mathcal{N}(y(S)\;|\; m_\theta(S) + w(S), \tau^2 I_n)
 \end{equation}
 Under the assumption that $w(s)$ follows a Gaussian process, one can construct the outcome process $y(s)$ using convolution over the latent process $w(s)$. If we integrate out $w(s)$ and model response $y(s)$ with a Gaussian process directly, then the parameters set will collapse from $\{\theta, w\}$ to $\{\theta\}$. In a Bayesian setting, $\theta$ will be sampled from its posterior distribution
 \begin{equation}\label{eq: response model}
-p(\theta \;|\; y(S)) \propto p(\theta) \times N(y(S)\;|\;m_{\theta}(S), C_\theta(S, S) + \tau^2 I_n)
+\mathcal{p}(\theta \;|\; y(S)) \; \propto \; \mathcal{p}(\theta) \; \times \; \mathcal{N} (y(S)\;|\;m_{\theta}(S), C_\theta(S, S) + \tau^2 I_n)
 \end{equation}
 To distinguish these two models, we shall call the former as a random-effects model, and the latter as a response model. 
 
@@ -55,14 +55,14 @@ To distinguish these two models, we shall call the former as a random-effects mo
 Nearest neighbor Gaussian process (NNGP) provides an alternative to the Gaussian
 process in the models discussed in the preceding subsection. The likelihoods of two models basing on NNGP derived from the original Gaussian process coincide with the Vecchia's approximation [@ve88] of the original models. In particular, a random-effects NNGP model has a posterior distribution proportional to 
 \begin{equation}\label{eq: random-effects NNGP model}
-p(\theta) \times N(w(S) \;|\; C^*) \times N(y(S) \;|\; m_\theta(S)+w(S), \tau^2 I_n)
+\mathcal{p} (\theta) \; \times \; \mathcal{N}(w(S) \;|\; C^*) \; \times \; \mathcal{N}(y(S) \;|\; m_\theta(S)+w(S), \tau^2 I_n)
 \end{equation}
 where $C^{*-1} = (I-A)^\top D^{-1}(I-A)$ is the precision matrix of the latent process $w(s)$ over $S$. Here $A$ is sparse and strictly lower triangular with at most $M$($M \ll N$) non-zero entries in each row, and $D$ is a diagonal matrix.
-One can readily calculate the determinate of $C^*$ by the product of the diagonal elements in $D$. The likelihood of $w(S)$ based on precision matrix $C^{*-1}$ serves as a good approximation to the likelihood of $w(s)$ in \\eqref{eq: random-effects model}, while the storage and computational burden of the former is linear in $N$.  
+One can readily calculate the determinant of $C^*$ by the product of the diagonal elements in $D$. The likelihood of $w(S)$ based on precision matrix $C^{*-1}$ serves as a good approximation to the likelihood of $w(s)$ in \\eqref{eq: random-effects model}, while the storage and computational burden of the former is linear in $N$.  
 
 A response NNGP model yields posterior distribution:
 \begin{equation} \label{eq:response_NNGP}
-p(\theta \;|\; y(S)) \propto p(\theta) \times N(y(S)\;|\;m_{\theta}(S), \{C_\theta + \tau^2 I\}^*)
+\mathcal{p}(\theta \;|\; y(S)) \; \propto \; \mathcal{p}(\theta) \; \times \; \mathcal{N}(y(S)\;|\;m_{\theta}(S), \{C_\theta + \tau^2 I\}^*)
 \end{equation}
 where $\{C_\theta + \tau^2 I\}^{*-1} = (I-A)^\top D^{-1}(I-A)$, analogous to random-effects NNGP model, can be treated as an approximation of $\{C_\theta(S, S)+\tau^2I_n\}^{-1}$. Notice that although one can obtain the response model by integrating out latent process in a random-effects model, the corresponding NNGP model doesn't have this property. 
 
@@ -170,7 +170,7 @@ str(NN.matrix)
 ```
 
 ### Check Neighbors (for fun)
-"NNmatrix.R" provides a function `Check_Neighbors` for checking the nearest neighbor index. It is important to point out that `spConjNNGP` sort coordinates on the first column before building the neighbor index.
+"NNmatrix.R" provides a function `Check_Neighbors` for checking the nearest neighbor index. It is important to point out that `spConjNNGP` sort coordinates on the first column before building the neighbor index. Thus we should use the sorted response and design matrix in the data block when the neighbor index is built by `spConjNNGP`. 
 ```{r}
 Check_Neighbors(m.c$coords.ord, NN = M, NN.matrix, ind = 200)
 ```
@@ -316,12 +316,14 @@ st = 3 * sqrt(0.1)     # scale parameter in the normal prior of tau
 ap = 3/1; bp = 3/0.1   # upper and lower bound of phi 
 ```
 ## Response NNGP models in Stan
-The following chunk is the R code for running response NNGP models:
+The following chunk is the R code for running response NNGP models. It's worth mentioning that we use the sorted response `m.c$y.ord` and design matrix `m.c$X.ord` got from `spConjNNGP` instead of the raw `Y` and `X` in the data block.  
 ```{r, message = F, results = 'hide', eval = T} 
 library(rstan)
 options(mc.cores = parallel::detectCores())
-data <- list(N = N, M = M, P = P, Y = m.c$y.ord, X = m.c$X.ord, 
-             NN_ind = NN.matrix$NN_ind, NN_dist = NN.matrix$NN_dist, 
+data <- list(N = N, M = M, P = P, 
+             Y = m.c$y.ord, X = m.c$X.ord,      # sorted Y and X
+             NN_ind = NN.matrix$NN_ind, 
+             NN_dist = NN.matrix$NN_dist, 
              NN_distM = NN.matrix$NN_distM,  
              uB = rep(0, P + 1), VB = diag(P + 1)*1000,
              ss = ss, st = st, ap = ap, bp = bp)
@@ -352,8 +354,10 @@ writeLines(readLines('nngp_response.stan'))
 The following chunk is the R code for running Random-effects NNGP models:
 ```{r, message = F, results = 'hide', eval = T}
 options(mc.cores = parallel::detectCores())
-data <- list(N = N, M = M, P = P, Y = m.c$y.ord, X = m.c$X.ord, 
-             NN_ind = NN.matrix$NN_ind, NN_dist = NN.matrix$NN_dist, 
+data <- list(N = N, M = M, P = P, 
+             Y = m.c$y.ord, X = m.c$X.ord,      # sorted Y and X
+             NN_ind = NN.matrix$NN_ind, 
+             NN_dist = NN.matrix$NN_dist, 
              NN_distM = NN.matrix$NN_distM, 
              uB = rep(0, P + 1), VB = diag(P + 1)*1000,
              ss = ss, st = st, ap = ap, bp = bp)
