@@ -370,18 +370,14 @@ Y &lt;-<span class="st"> </span><span class="kw">rnorm</span>(N, X %*%<span clas
 <p>These three matrices are required for constructing the sparse lower triangular matrix <span class="math inline">\(A\)</span>, and the diagonal matrix <span class="math inline">\(D\)</span>. Since they are fixed across the MCMC updates, we recommend user to provide them in the data segment. Next, I will show how to use package spNNGP, which has a fast algorithm of building neighbor index, to efficiently generate the matrices listed above.</p>
 <div id="use-spnngp-to-build-neighbor-index" class="section level3">
 <h3><span class="header-section-number">2.2.1</span> Use spNNGP to build neighbor index</h3>
-<p>First, use function <code>spConjNNGP</code> in spNNGP to build neighbor index. The setting <code>sigma.sq.IG</code>, <code>theta.alpha</code> and <code>cov.model</code> do not affect the neighbor index. The only parameters we need to modify is the number of nearest neighbors <span class="math inline">\(M\)</span>.</p>
+<p>First, use function <code>spConjNNGP</code> in spNNGP to build neighbor index. The setting of <code>theta.alpha</code>, <code>k.fold</code>, <code>sigma.sq.IG</code>, and <code>cov.model</code> do not affect the neighbor index. <code>n.omp.threads</code> indicates the number of threads to use for parallel processing. The only parameters we need to modify is the number of nearest neighbors <span class="math inline">\(M\)</span>.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(spNNGP)       <span class="co"># Build neighbor index</span>
-M =<span class="st"> </span><span class="dv">6</span>  <span class="co"># Number of Nearest Neighbors</span>
-sigma.sq.IG &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="dv">2</span>, <span class="dv">1</span>)
-cov.model &lt;-<span class="st"> &quot;exponential&quot;</span>
-theta.alpha &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="dv">5</span>, <span class="fl">0.5</span>) 
-<span class="kw">names</span>(theta.alpha) &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;phi&quot;</span>, <span class="st">&quot;alpha&quot;</span>)
+M =<span class="st"> </span><span class="dv">6</span>                 <span class="co"># Number of Nearest Neighbors</span>
 
 m.c &lt;-<span class="st"> </span><span class="kw">spConjNNGP</span>(Y ~<span class="st"> </span>X[, -<span class="dv">1</span>], <span class="dt">coords =</span> coords, <span class="dt">n.neighbors =</span> M,
-                  <span class="dt">theta.alpha =</span> theta.alpha, <span class="dt">k.fold =</span> <span class="dv">1</span>,
-                  <span class="dt">n.omp.threads =</span> <span class="dv">2</span>, <span class="dt">return.neighbors =</span> T,
-                  <span class="dt">sigma.sq.IG =</span> sigma.sq.IG, <span class="dt">cov.model =</span> cov.model)</code></pre></div>
+                  <span class="dt">theta.alpha =</span> <span class="kw">c</span>(<span class="st">&quot;phi&quot;</span> =<span class="st"> </span><span class="dv">5</span>, <span class="st">&quot;alpha&quot;</span> =<span class="st"> </span><span class="fl">0.5</span>),
+                  <span class="dt">k.fold =</span> <span class="dv">1</span>, <span class="dt">n.omp.threads =</span> <span class="dv">2</span>, <span class="dt">return.neighbors =</span> T,
+                  <span class="dt">sigma.sq.IG =</span> <span class="kw">c</span>(<span class="dv">2</span>, <span class="dv">1</span>), <span class="dt">cov.model =</span> <span class="st">&quot;exponential&quot;</span>)</code></pre></div>
 <p>Then use the functions defined in file “NNmatrix.R” to generate the required matrix in the Stan data segment.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">source</span>(<span class="st">&quot;NNmatrix.R&quot;</span>)  <span class="co"># Build matrix including nearest neighbor information</span>
 NN.matrix &lt;-<span class="st"> </span><span class="kw">NNMatrix</span>(N, m.c$coords.ord, m.c$n.indx[-<span class="dv">1</span>])
@@ -830,7 +826,7 @@ tausq   1.01
 phi     1.01
 lp__    1.00
 
-Samples were drawn using NUTS(diag_e) at Wed Nov 15 19:59:02 2017.
+Samples were drawn using NUTS(diag_e) at Thu Nov 16 10:43:16 2017.
 For each parameter, n_eff is a crude measure of effective sample size,
 and Rhat is the potential scale reduction factor on split chains (at 
 convergence, Rhat=1).</code></pre>
@@ -857,7 +853,7 @@ w[2]     0.99    0.09 0.32  0.43  0.78  0.97  1.19  1.68    13 1.08
 w[3]    -2.84    0.18 0.34 -3.43 -3.09 -2.85 -2.60 -2.18     4 1.30
 w[4]    -0.49    0.12 0.31 -1.04 -0.72 -0.51 -0.26  0.11     7 1.14
 
-Samples were drawn using NUTS(diag_e) at Wed Nov 15 20:06:07 2017.
+Samples were drawn using NUTS(diag_e) at Thu Nov 16 10:50:11 2017.
 For each parameter, n_eff is a crude measure of effective sample size,
 and Rhat is the potential scale reduction factor on split chains (at 
 convergence, Rhat=1).</code></pre>
@@ -883,7 +879,7 @@ w_b1[2]  1.69    0.01 0.30  1.08  1.49  1.68  1.90  2.22   600 1.00
 w_b1[3] -2.08    0.01 0.27 -2.63 -2.25 -2.07 -1.89 -1.52   600 1.00
 w_b1[4]  0.24    0.01 0.29 -0.43  0.07  0.24  0.43  0.79   600 1.00
 
-Samples were drawn using NUTS(diag_e) at Wed Nov 15 20:08:47 2017.
+Samples were drawn using NUTS(diag_e) at Thu Nov 16 10:52:56 2017.
 For each parameter, n_eff is a crude measure of effective sample size,
 and Rhat is the potential scale reduction factor on split chains (at 
 convergence, Rhat=1).</code></pre>

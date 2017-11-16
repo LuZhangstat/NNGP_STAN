@@ -148,19 +148,15 @@ Here the design matrix X contains an initial column of 1s, P is the number of re
 These three matrices are required for constructing the sparse lower triangular matrix $A$, and the diagonal matrix $D$. Since they are fixed across the MCMC updates, we recommend user to provide them in the data segment. Next, I will show how to use package spNNGP, which has a fast algorithm of building neighbor index, to efficiently generate the matrices listed above. 
 
 ### Use spNNGP to build neighbor index
-First, use function `spConjNNGP` in spNNGP to build neighbor index. The setting  `sigma.sq.IG`, `theta.alpha` and `cov.model` do not affect the neighbor index. The only parameters we need to modify is the number of nearest neighbors $M$.
+First, use function `spConjNNGP` in spNNGP to build neighbor index. The setting of  `theta.alpha`, `k.fold`, `sigma.sq.IG`,  and `cov.model` do not affect the neighbor index. `n.omp.threads` indicates the number of threads to use for parallel processing. The only parameters we need to modify is the number of nearest neighbors $M$.
 ```{r, results = 'hide', message= F}
 library(spNNGP)       # Build neighbor index
-M = 6  # Number of Nearest Neighbors
-sigma.sq.IG <- c(2, 1)
-cov.model <- "exponential"
-theta.alpha <- c(5, 0.5) 
-names(theta.alpha) <- c("phi", "alpha")
+M = 6                 # Number of Nearest Neighbors
 
 m.c <- spConjNNGP(Y ~ X[, -1], coords = coords, n.neighbors = M,
-                  theta.alpha = theta.alpha, k.fold = 1,
-                  n.omp.threads = 2, return.neighbors = T,
-                  sigma.sq.IG = sigma.sq.IG, cov.model = cov.model)
+                  theta.alpha = c("phi" = 5, "alpha" = 0.5),
+                  k.fold = 1, n.omp.threads = 2, return.neighbors = T,
+                  sigma.sq.IG = c(2, 1), cov.model = "exponential")
 ```
 Then use the functions defined in file "NNmatrix.R" to generate the required matrix in the Stan data segment.
 ```{r}

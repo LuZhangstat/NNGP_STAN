@@ -42,18 +42,12 @@ plot(v.resid, main = 'Empirical Variogram', cex = 0.2, ylim = c(0, 3.5))
 lines(vario.fit, col='red')
 
 #-------------- Build neighbor index on sorted x by "spConjNNGP" --------------#
-M = 6 # Number of Nearest Neighbors
-sigma.sq.IG <- c(2, 2)
-cov.model <- "exponential"
-theta.alpha <- c(5, 0.5)
-names(theta.alpha) <- c("phi", "alpha")
+M = 6                 # Number of Nearest Neighbors
 
-m.c <- spConjNNGP(Y ~ X[, -1], 
-                  coords = coords, 
-                  n.neighbors = M,
-                  theta.alpha = theta.alpha, k.fold = 1,
-                  n.omp.threads = 2, return.neighbors = T,
-                  sigma.sq.IG = sigma.sq.IG, cov.model = cov.model)
+m.c <- spConjNNGP(Y ~ X[, -1], coords = coords, n.neighbors = M,
+                  theta.alpha = c("phi" = 5, "alpha" = 0.5),
+                  k.fold = 1, n.omp.threads = 2, return.neighbors = T,
+                  sigma.sq.IG = c(2, 1), cov.model = "exponential")
 
 NN.matrix <- NNMatrix(N, m.c$coords.ord, m.c$n.indx[-1])
 
