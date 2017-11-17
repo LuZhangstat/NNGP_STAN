@@ -34,13 +34,12 @@ get_NN_ind <- function (ind, ind_distM_i) {
 NNMatrix <- function(coords, n.neighbors, n.omp.threads = 2){
   
   N <- nrow(coords)
-  invisible(capture.output(
-    m.c <- spConjNNGP(rep(0, N) ~ 1, coords = coords, 
-                      n.neighbors = n.neighbors,
-                      theta.alpha = c("phi" = 5, "alpha" = 0.5),
-                      k.fold = 1, n.omp.threads = n.omp.threads, 
-                      return.neighbors = T, sigma.sq.IG = c(2, 1), 
-                      cov.model = "exponential")))
+  m.c <- spConjNNGP(rep(0, N) ~ 1, coords = coords,
+                    n.neighbors = n.neighbors,
+                    theta.alpha = c("phi" = 5, "alpha" = 0.5),
+                    k.fold = 1, n.omp.threads = n.omp.threads,
+                    return.neighbors = T, sigma.sq.IG = c(2, 1),
+                    cov.model = "exponential", verbose = F)
   
   NN_ind <- t(sapply(1: (N - 1), get_NN_ind, m.c$n.indx[-1]))
   neighbor_dist <- sapply(2:N, i_dist, m.c$n.indx[-1], m.c$coords.ord)

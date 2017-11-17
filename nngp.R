@@ -44,6 +44,46 @@ ss = 3 * sqrt(2)       # scale parameters in the normal prior of sigma
 st = 3 * sqrt(0.1)     # scale parameters in the normal prior of tau     
 ap = 3/1; bp = 3/0.1   # upper and lower bound of phi 
 
+#------------------------------ NNGP response ---------------------------------#
+options(mc.cores = parallel::detectCores())
+data <- list(N = N, M = M, P = P,
+Y = Y[NN.matrix$ord], X = X[NN.matrix$ord, ],
+NN_ind = NN.matrix$NN_ind, NN_dist = NN.matrix$NN_dist,
+NN_distM = NN.matrix$NN_distM,
+uB = rep(0, P + 1), VB = diag(P + 1)*1000,
+ss = ss, st = st, ap = ap, bp = bp)
+
+myinits <-list(list(beta = c(1, 5), sigma = 1, tau = 0.4, phi = 20),
+list(beta = c(5, 5), sigma = 1.5, tau = 0.2, phi = 5),
+list(beta = c(0, 0), sigma = 2.5, tau = 0.1, phi = 9))
+
+parameters <- c("beta", "sigmasq", "tausq", "phi")
+samples <- stan(
+file = "nngp_response.stan",
+data = data,
+init = myinits,
+pars = parameters,
+iter = 400,
+chains = 3,
+thin = 1,
+seed = 123
+)
+
+print(samples)
+stan_trace(samples)
+stan_trace(samples, inc_warmup = T)
+
+sampler_params <- get_sampler_params(samples, inc_warmup = FALSE)
+mean_accept_stat_by_chain <-
+sapply(sampler_params, function(x) mean(x[, "accept_stat__"]))
+print(mean_accept_stat_by_chain)
+
+max_treedepth_by_chain <-
+sapply(sampler_params, function(x) max(x[, "treedepth__"]))
+print(max_treedepth_by_chain)
+
+launch_shinystan(samples)
+
 #--------------------------- NNGP random effects ------------------------------#
 options(mc.cores = parallel::detectCores())
 data <- list(N = N, M = M, P = P, 
@@ -132,44 +172,5 @@ print(max_treedepth_by_chain)
 
 launch_shinystan(samples_wb1)
 
-#------------------------------ NNGP response ---------------------------------#
 
-options(mc.cores = parallel::detectCores())
-data <- list(N = N, M = M, P = P, 
-             Y = Y[NN.matrix$ord], X = X[NN.matrix$ord, ],
-             NN_ind = NN.matrix$NN_ind, NN_dist = NN.matrix$NN_dist, 
-             NN_distM = NN.matrix$NN_distM,  
-             uB = rep(0, P + 1), VB = diag(P + 1)*1000,
-             ss = ss, st = st, ap = ap, bp = bp)
-
-myinits <-list(list(beta = c(1, 5), sigma = 1, tau = 0.4, phi = 20), 
-               list(beta = c(5, 5), sigma = 1.5, tau = 0.2, phi = 5), 
-               list(beta = c(0, 0), sigma = 2.5, tau = 0.1, phi = 9))
-
-parameters <- c("beta", "sigmasq", "tausq", "phi")
-samples <- stan(
-  file = "nngp_response.stan",
-  data = data,
-  init = myinits,
-  pars = parameters,
-  iter = 400, 
-  chains = 3,
-  thin = 1,
-  seed = 123
-)
-
-print(samples)
-stan_trace(samples)
-stan_trace(samples, inc_warmup = T)
-
-sampler_params <- get_sampler_params(samples, inc_warmup = FALSE)
-mean_accept_stat_by_chain <- 
-  sapply(sampler_params, function(x) mean(x[, "accept_stat__"]))
-print(mean_accept_stat_by_chain)
-
-max_treedepth_by_chain <- 
-  sapply(sampler_params, function(x) max(x[, "treedepth__"]))
-print(max_treedepth_by_chain)
-
-launch_shinystan(samples)
 
