@@ -145,30 +145,21 @@ Here the design matrix X contains an initial column of 1s, P is the number of re
 
 \item `NN_dist` is a matrix whose $i - 1$th row contains the strictly lower triangular part of the distance matrix of the selected neighbors of $i$th location.
 
-These three matrices are required for constructing the sparse lower triangular matrix $A$, and the diagonal matrix $D$. Since they are fixed across the MCMC updates, we recommend user to provide them in the data segment. Next, I will show how to use package spNNGP, which has a fast algorithm of building neighbor index, to efficiently generate the matrices listed above. 
+These three matrices are required for constructing the sparse lower triangular matrix $A$, and the diagonal matrix $D$. Since they are fixed across the MCMC updates, we recommend user to provide them in the data segment. Next, I will show how to efficiently generate the matrices listed above. 
 
-### Use spNNGP to build neighbor index
-First, use function `spConjNNGP` in spNNGP to build neighbor index. The setting of  `theta.alpha`, `k.fold`, `sigma.sq.IG`,  and `cov.model` do not affect the neighbor index. `n.omp.threads` indicates the number of threads to use for parallel processing. The only parameters we need to modify is the number of nearest neighbors $M$.
+### Build neighbor index
+File "NNmatrix.R" provides a wrapper function in R that uses package spNNGP, which has a fast algorithm of building neighbor index, to generate the required matrices in the Stan data segment. Here `n.omp.threads` indicates the number of threads to use for parallel processing.
 ```{r, results = 'hide', message= F}
-library(spNNGP)       # Build neighbor index
+source("NNmatrix.R")
 M = 6                 # Number of Nearest Neighbors
-
-m.c <- spConjNNGP(Y ~ X[, -1], coords = coords, n.neighbors = M,
-                  theta.alpha = c("phi" = 5, "alpha" = 0.5),
-                  k.fold = 1, n.omp.threads = 2, return.neighbors = T,
-                  sigma.sq.IG = c(2, 1), cov.model = "exponential")
-```
-Then use the functions defined in file "NNmatrix.R" to generate the required matrix in the Stan data segment.
-```{r}
-source("NNmatrix.R")  # Build matrix including nearest neighbor information
-NN.matrix <- NNMatrix(N, m.c$coords.ord, m.c$n.indx[-1])
+NN.matrix <- NNMatrix(coords = coords, n.neighbors = M, n.omp.threads = 2)
 str(NN.matrix)
 ```
 
 ### Check Neighbors (for fun)
-"NNmatrix.R" provides a function `Check_Neighbors` for checking the nearest neighbor index. It is important to point out that `spConjNNGP` sort coordinates on the first column before building the neighbor index. Thus we should use the sorted response and design matrix in the data block when the neighbor index is built by `spConjNNGP`. 
+We can use function `Check_Neighbors` in "NNmatrix.R" for checking the nearest neighbor index. It is important to point out that `NNMatrix` sorts coordinates on the first column before building the neighbor index. Thus we should use the sorted response and design matrix instead of the raw data in the data block.
 ```{r}
-Check_Neighbors(m.c$coords.ord, NN = M, NN.matrix, ind = 200)
+Check_Neighbors(NN.matrix$coords.ord, n.neighbors = M, NN.matrix, ind = 200)
 ```
 
 ## Parameter and model block in Stan
@@ -312,12 +303,12 @@ st = 3 * sqrt(0.1)     # scale parameter in the normal prior of tau
 ap = 3/1; bp = 3/0.1   # upper and lower bound of phi 
 ```
 ## Response NNGP models in Stan
-The following chunk is the R code for running response NNGP models. It's worth mentioning that we use the sorted response `m.c$y.ord` and design matrix `m.c$X.ord` got from `spConjNNGP` instead of the raw `Y` and `X` in the data block.  
+The following chunk is the R code for running response NNGP models. It's worth mentioning that we use the response and design matrix sorted by the order from `NNMatrix` instead of the raw `Y` and `X` in the data block.  
 ```{r, message = F, results = 'hide', eval = T} 
 library(rstan)
 options(mc.cores = parallel::detectCores())
 data <- list(N = N, M = M, P = P, 
-             Y = m.c$y.ord, X = m.c$X.ord,      # sorted Y and X
+             Y = Y[NN.matrix$ord], X = X[NN.matrix$ord, ],    # sorted Y and X
              NN_ind = NN.matrix$NN_ind, 
              NN_dist = NN.matrix$NN_dist, 
              NN_distM = NN.matrix$NN_distM,  
@@ -351,7 +342,7 @@ The following chunk is the R code for running Random-effects NNGP models:
 ```{r, message = F, results = 'hide', eval = T}
 options(mc.cores = parallel::detectCores())
 data <- list(N = N, M = M, P = P, 
-             Y = m.c$y.ord, X = m.c$X.ord,      # sorted Y and X
+             Y = Y[NN.matrix$ord], X = X[NN.matrix$ord, ],    # sorted Y and X
              NN_ind = NN.matrix$NN_ind, 
              NN_dist = NN.matrix$NN_dist, 
              NN_distM = NN.matrix$NN_distM, 
@@ -411,7 +402,7 @@ Notice the trace plot of random-effects $w$ are highly correlated with the inter
 
 ```{r, message = F, results = 'hide', echo = F, eval= T}
 options(mc.cores = parallel::detectCores())
-data <- list(N = N, M = M, P = P, Y = m.c$y.ord, X = m.c$X.ord, 
+data <- list(N = N, M = M, P = P, Y = Y[NN.matrix$ord], X = X[NN.matrix$ord, ], 
              NN_ind = NN.matrix$NN_ind, NN_dist = NN.matrix$NN_dist,
              NN_distM = NN.matrix$NN_distM, 
              uB = rep(0, P + 1), VB = diag(P + 1)*1000,

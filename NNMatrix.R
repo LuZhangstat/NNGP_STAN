@@ -1,3 +1,4 @@
+library(spNNGP)       # Build neighbor index
 
 #### distance matrix for location i and its neighbors ####
 i_dist <- function(i, neighbor_index, s)	dist(s[c(i, neighbor_index[[i - 1]]), ])
@@ -30,27 +31,35 @@ get_NN_ind <- function (ind, ind_distM_i) {
 
 #### wrap up in function NNMatrix ####
 
-NNMatrix <- function(N, coords.ord, n.indx){
-    
-    NN_ind <- t(sapply(1: (N - 1), get_NN_ind, n.indx))
-    neighbor_dist <- sapply(2:N, i_dist, n.indx, coords.ord)
-    NN_distM <- t(sapply(1: (N - 1), get_NN_distM, neighbor_dist))
-    NN_dist <- t(sapply(1: (N - 1), get_NN_dist, neighbor_dist))
-    
-    return(
-      list(NN_ind = NN_ind, NN_distM = NN_distM,
-           NN_dist = NN_dist))
+NNMatrix <- function(coords, n.neighbors, n.omp.threads = 2){
+  
+  N <- nrow(coords)
+  invisible(capture.output(
+    m.c <- spConjNNGP(rep(0, N) ~ 1, coords = coords, 
+                      n.neighbors = n.neighbors,
+                      theta.alpha = c("phi" = 5, "alpha" = 0.5),
+                      k.fold = 1, n.omp.threads = n.omp.threads, 
+                      return.neighbors = T, sigma.sq.IG = c(2, 1), 
+                      cov.model = "exponential")))
+  
+  NN_ind <- t(sapply(1: (N - 1), get_NN_ind, m.c$n.indx[-1]))
+  neighbor_dist <- sapply(2:N, i_dist, m.c$n.indx[-1], m.c$coords.ord)
+  NN_distM <- t(sapply(1: (N - 1), get_NN_distM, neighbor_dist))
+  NN_dist <- t(sapply(1: (N - 1), get_NN_dist, neighbor_dist))
+  
+  return(list(ord = m.c$ord, coords.ord = m.c$coords.ord,
+              NN_ind = NN_ind, NN_distM = NN_distM, NN_dist = NN_dist))
 }
 
 #### Function for checking neighbors ####
 
-Check_Neighbors <- function(coords, NN, NN.matrix, ind){
+Check_Neighbors <- function(coords, n.neighbors, NN.matrix, ind){
   
   plot(coords) 
   points(coords[1:ind, , drop = FALSE], col = "grey", pch = 19) 
   
   # neighbors
-  if (ind < NN) {dim = ind} else {dim = NN}
+  if (ind < n.neighbors) {dim = ind} else {dim = n.neighbors}
   for (j in 1:dim){
     points(coords[NN.matrix$NN_ind[ind - 1, j], , drop = FALSE], 
            col = "orange",  pch = 19)

@@ -6,6 +6,7 @@ library(spNNGP)       # Build neighbor index
 source("NNmatrix.R")  # Build matrix including nearest neighbor information
 
 #------------------------- generate simulation data ---------------------------#
+
 rmvn <- function(N, mu = 0, V = matrix(1)){
   P <- length(mu)
   if(any(is.na(match(dim(V), P))))
@@ -28,33 +29,14 @@ R <- exp(- phi * D)
 w <- rmvn(1, rep(0, N), sigma.sq*R)
 Y <- rnorm(N, X %*% B + w, sqrt(tau.sq))
 
-#----------------------- Empirival Variogram (for fun) ------------------------#
-library(geoR)     # empirical variogram
-library(spBayes)  # function iDist 
-
-par(mfrow = c(1, 1))
-lm.obj <- lm(Y ~ X[, -1])
-d.max <- max(iDist(coords))
-v.resid <- variog(coords=coords, data=resid(lm.obj), 
-                  uvec=(seq(0, 0.6 * d.max, length = 20))) 
-vario.fit <- variofit(v.resid, cov.model="exponential")
-plot(v.resid, main = 'Empirical Variogram', cex = 0.2, ylim = c(0, 3.5))
-lines(vario.fit, col='red')
-
-#-------------- Build neighbor index on sorted x by "spConjNNGP" --------------#
+#---------------------- Build neighbor index by NNMatrix ----------------------#
 M = 6                 # Number of Nearest Neighbors
-
-m.c <- spConjNNGP(Y ~ X[, -1], coords = coords, n.neighbors = M,
-                  theta.alpha = c("phi" = 5, "alpha" = 0.5),
-                  k.fold = 1, n.omp.threads = 2, return.neighbors = T,
-                  sigma.sq.IG = c(2, 1), cov.model = "exponential")
-
-NN.matrix <- NNMatrix(N, m.c$coords.ord, m.c$n.indx[-1])
+NN.matrix <- NNMatrix(coords = coords, n.neighbors = M, n.omp.threads = 2)
+str(NN.matrix)
 
 #------------------------- Check Neighbors (For fun) --------------------------#
-
 par(mfrow=c(1,1))
-Check_Neighbors(m.c$coords.ord, NN = M, NN.matrix, ind = 200)
+Check_Neighbors(NN.matrix$coords.ord, n.neighbors = M, NN.matrix, ind = 200)
 
 #-------------------------- Set parameters of priors --------------------------#
 P = 1                  # number of regression coefficients
@@ -64,7 +46,8 @@ ap = 3/1; bp = 3/0.1   # upper and lower bound of phi
 
 #--------------------------- NNGP random effects ------------------------------#
 options(mc.cores = parallel::detectCores())
-data <- list(N = N, M = M, P = P, Y = m.c$y.ord, X = m.c$X.ord, 
+data <- list(N = N, M = M, P = P, 
+             Y = Y[NN.matrix$ord], X = X[NN.matrix$ord, ], 
              NN_ind = NN.matrix$NN_ind, NN_dist = NN.matrix$NN_dist, 
              NN_distM = NN.matrix$NN_distM, 
              uB = rep(0, P + 1), VB = diag(P + 1)*1000,
@@ -106,7 +89,8 @@ launch_shinystan(samples_w)
 
 #----------------- NNGP random effects with w centered at b1 ------------------#
 options(mc.cores = parallel::detectCores())
-data <- list(N = N, M = M, P = P, Y = m.c$y.ord, X = m.c$X.ord, 
+data <- list(N = N, M = M, P = P, 
+             Y = Y[NN.matrix$ord], X = X[NN.matrix$ord, ], 
              NN_ind = NN.matrix$NN_ind, NN_dist = NN.matrix$NN_dist,
              NN_distM = NN.matrix$NN_distM, 
              uB = rep(0, P + 1), VB = diag(P + 1)*1000,
@@ -151,7 +135,8 @@ launch_shinystan(samples_wb1)
 #------------------------------ NNGP response ---------------------------------#
 
 options(mc.cores = parallel::detectCores())
-data <- list(N = N, M = M, P = P, Y = m.c$y.ord, X = m.c$X.ord, 
+data <- list(N = N, M = M, P = P, 
+             Y = Y[NN.matrix$ord], X = X[NN.matrix$ord, ],
              NN_ind = NN.matrix$NN_ind, NN_dist = NN.matrix$NN_dist, 
              NN_distM = NN.matrix$NN_distM,  
              uB = rep(0, P + 1), VB = diag(P + 1)*1000,
