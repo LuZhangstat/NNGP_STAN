@@ -6,15 +6,11 @@
                      int N, int M){
 
           vector[N] V;
-          vector[N] YXb;
-          vector[N] U;
+          vector[N] YXb = Y - X_beta;
+          vector[N] U = YXb;
+          real kappa_p_1 = tausq / sigmasq + 1;
           int dim;
           int h;
-          real kappa_p_1;
-          real out;
-          kappa_p_1 = tausq / sigmasq + 1;
-          YXb = Y - X_beta;
-          U = YXb;
 
           for (i in 2:N) {
               matrix[ i < (M + 1) ? (i - 1) : M, i < (M + 1) ? (i - 1): M]
@@ -42,9 +38,7 @@
               }
 
               iNNCholL = cholesky_decompose(iNNdistM);
-              for (j in 1: dim){
-                  iNNcorr[j] = exp(- phi * NN_dist[(i - 1), j]);
-              }
+              iNNcorr = to_vector(exp(- phi * NN_dist[(i - 1), 1: dim]));
 
              v = mdivide_left_tri_low(iNNCholL, iNNcorr);
 
@@ -52,14 +46,11 @@
 
              v2 = mdivide_right_tri_low(v', iNNCholL);
 
-             for (j in 1:dim){
-                  U[i] = U[i] - v2[j] * YXb[NN_ind[(i - 1), j]];
-              }
+             U[i] = U[i] - v2 * YXb[NN_ind[(i - 1), 1:dim]];
           }
           V[1] = kappa_p_1;
-          out = - 0.5 * ( 1 / sigmasq * dot_product(U, (U ./ V)) +
+          return - 0.5 * ( 1 / sigmasq * dot_product(U, (U ./ V)) +
                           sum(log(V)) + N * log(sigmasq));
-          return out;
       }
   }
 
@@ -89,7 +80,7 @@
       vector[P + 1] beta;
       real<lower = 0> sigma;
       real<lower = 0> tau;
-      real<lower = ap, upper = bp> phi;
+      real<lower = 0> phi;
   }
 
   transformed parameters {
@@ -99,6 +90,7 @@
 
   model{
       beta ~ multi_normal_cholesky(uB, L_VB);
+      phi ~ gamma(ap, bp);
       sigma ~ normal(0, ss);
       tau ~ normal(0, st);
       Y ~ nngp(X * beta, sigmasq, tausq, phi, NN_dist, NN_distM, NN_ind, N, M);

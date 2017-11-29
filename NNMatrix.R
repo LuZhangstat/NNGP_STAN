@@ -63,7 +63,11 @@ Check_Neighbors <- function(coords, n.neighbors, NN.matrix, ind){
     points(coords[NN.matrix$NN_ind[ind - 1, j], , drop = FALSE], 
            col = "orange",  pch = 19)
   }
-  points(coords[ind, , drop = FALSE], col = "blue", pch = 19) 
-  
+  points(coords[ind, , drop = FALSE], col = "blue", pch = 19)
+  legend("topright", inset=.05, 
+         c("obs", paste0( ind, "th obs"), 
+           paste0("neighbors of ", ind,"th obs"), 
+           paste0("obs indexed <", ind)), pch = c(1, 19, 19, 19),
+         col=c("black", "blue", "orange", "grey"), horiz=F)
 }
 

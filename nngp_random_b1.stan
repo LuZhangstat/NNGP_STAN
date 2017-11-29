@@ -6,13 +6,10 @@
                        real intercept){
 
           vector[N] V;
-          vector[N] I_Aw;
-          vector[N] w;
+          vector[N] w = w_b1 - intercept;
+          vector[N] I_Aw = w;
           int dim;
           int h;
-          real out;
-          w = w_b1 - intercept;
-          I_Aw = w;
 
           for (i in 2:N) {
               matrix[ i < (M + 1)? (i - 1) : M, i < (M + 1)? (i - 1): M]
@@ -24,8 +21,6 @@
               row_vector[i < (M + 1)? (i - 1) : M] v2;
 
               dim = (i < (M + 1))? (i - 1) : M;
-
-              // get exp(-phi * NN_distM)
 
               if(dim == 1){iNNdistM[1, 1] = 1;}
               else{
@@ -43,25 +38,20 @@
               }
 
               iNNCholL = cholesky_decompose(iNNdistM);
-              for (j in 1: dim){
-                  iNNcorr[j] = exp(- phi * NN_dist[(i - 1), j]);
-              }
-            
-              //vector[dim] v;
+              iNNcorr = to_vector(exp(- phi * NN_dist[(i - 1), 1: dim]));
+
               v = mdivide_left_tri_low(iNNCholL, iNNcorr);
 
               V[i] = 1 - dot_self(v);
 
               v2 = mdivide_right_tri_low(v', iNNCholL);
 
-              for (j in 1:dim){
-                  I_Aw[i] = I_Aw[i] - v2[j] * w[NN_ind[(i - 1), j]];
-              }
+              I_Aw[i] = I_Aw[i] - v2 * w[NN_ind[(i - 1), 1:dim]];
+
           }
           V[1] = 1;
-          out = - 0.5 * ( 1 / sigmasq * dot_product(I_Aw, (I_Aw ./ V)) +
+          return - 0.5 * ( 1 / sigmasq * dot_product(I_Aw, (I_Aw ./ V)) +
                           sum(log(V)) + N * log(sigmasq));
-          return out;
       }
   }
 
@@ -92,7 +82,7 @@
       vector[P + 1] beta;
       real<lower = 0> sigma;
       real<lower = 0> tau;
-      real<lower = ap, upper = bp> phi;
+      real<lower = 0> phi;
       vector[N] w_b1;
   }
 
@@ -103,6 +93,7 @@
 
   model{
       beta ~ multi_normal_cholesky(uB, L_VB);
+      phi ~ gamma(ap, bp);
       sigma ~ normal(0, ss);
       tau ~ normal(0, st);
       w_b1 ~ nngp_w(sigmasq, phi, NN_dist, NN_distM, NN_ind, N, M, beta[1]);

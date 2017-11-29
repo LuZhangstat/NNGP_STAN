@@ -1,9 +1,8 @@
 ---
 title: " Nearest Neighbor Gaussian Processes (NNGP) based models in Stan"
-author: 
-  - Lu Zhang 
-email:
-  - luzhang@ucla.edu
+author: |
+  | Lu Zhang 
+  | lu.zhang@ucla.edu
 date: "11/5/2017"
 output: 
   html_document:
@@ -45,20 +44,20 @@ If we model the process $w(s)$ with a Gaussian process $w(s) \sim GP(0, C_\theta
 \begin{equation}\label{eq: random-effects model}
 \mathcal{p}(\theta) \; \times \; \mathcal{N}(w(S)\;|\;0, C_\theta(S,S)) \; \times \; \mathcal{N}(y(S)\;|\; m_\theta(S) + w(S), \tau^2 I_n)
 \end{equation}
-Under the assumption that $w(s)$ follows a Gaussian process, one can construct the outcome process $y(s)$ using convolution over the latent process $w(s)$. If we integrate out $w(s)$ and model response $y(s)$ with a Gaussian process directly, then the parameters set will collapse from $\{\theta, w\}$ to $\{\theta\}$. In a Bayesian setting, $\theta$ will be sampled from its posterior distribution
+Another implementation of GP is to marginalize over the latent process $w(s)$ and construct the outcome process $y(s)$ directly with a GP. By integrating out $w(s)$, we have a more parsimonious model whose parameters set collapses from $\{\theta, w\}$ to $\{\theta\}$. In a Bayesian setting, $\theta$ will be sampled from its posterior distribution
 \begin{equation}\label{eq: response model}
 \mathcal{p}(\theta \;|\; y(S)) \; \propto \; \mathcal{p}(\theta) \; \times \; \mathcal{N} (y(S)\;|\;m_{\theta}(S), C_\theta(S, S) + \tau^2 I_n)
 \end{equation}
-To distinguish these two models, we shall call the former as a random-effects model, and the latter as a response model. 
+To distinguish these two models, we shall call the former as a random-effects model, and the latter as a response model. These two models are referred as the latent variable GP and the marginal likelihood GP in Stan reference manual (@tstan2017).
 
 ## Random-effects and Response NNGP models
 Nearest neighbor Gaussian process (NNGP) provides an alternative to the Gaussian
 process in the models discussed in the preceding subsection. The likelihoods of two models basing on NNGP derived from the original Gaussian process coincide with the Vecchia's approximation [@ve88] of the original models. In particular, a random-effects NNGP model has a posterior distribution proportional to 
 \begin{equation}\label{eq: random-effects NNGP model}
-\mathcal{p} (\theta) \; \times \; \mathcal{N}(w(S) \;|\; C^*) \; \times \; \mathcal{N}(y(S) \;|\; m_\theta(S)+w(S), \tau^2 I_n)
+\mathcal{p} (\theta) \; \times \; \mathcal{N}(w(S) \;|\; 0, C^*) \; \times \; \mathcal{N}(y(S) \;|\; m_\theta(S)+w(S), \tau^2 I_n)
 \end{equation}
-where $C^{*-1} = (I-A)^\top D^{-1}(I-A)$ is the precision matrix of the latent process $w(s)$ over $S$. Here $A$ is sparse and strictly lower triangular with at most $M$($M \ll N$) non-zero entries in each row, and $D$ is a diagonal matrix.
-One can readily calculate the determinant of $C^*$ by the product of the diagonal elements in $D$. The likelihood of $w(S)$ based on precision matrix $C^{*-1}$ serves as a good approximation to the likelihood of $w(s)$ in \\eqref{eq: random-effects model}, while the storage and computational burden of the former is linear in $N$.  
+where $C^{*-1} = (I-A^*)^\top D^{*-1}(I-A^*)$ is the precision matrix of the latent process $w(s)$ over $S$. Here $A^*$ is sparse and strictly lower triangular with at most $M$($M \ll N$) non-zero entries in each row, and $D^*$ is a diagonal matrix.
+One can readily calculate the determinant of $C^*$ by the product of the diagonal elements in $D^*$. The likelihood of $w(S)$ based on precision matrix $C^{*-1}$ serves as a good approximation to the likelihood of $w(s)$ in \\eqref{eq: random-effects model}, while the storage and computational burden of the former is linear in $N$.  
 
 A response NNGP model yields posterior distribution:
 \begin{equation} \label{eq:response_NNGP}
@@ -68,7 +67,7 @@ where $\{C_\theta + \tau^2 I\}^{*-1} = (I-A)^\top D^{-1}(I-A)$, analogous to ran
 
 
 ## Construction of $A$, $D$
-The details of the Matrix $A$, $D$ and two models can be found in @finley2017applying. Here we use the response NNGP model to show how to construct matrix $A$ and $D$. Let $N(s_i)$ be at most $M$ closest points to $s_i$ among the locations indexed less that $i$. For the $i$ th row ($i > 1$) of $A$, the nonzero entries appear in the positions indexed by $N(s_i)$ are obtained as row vectors
+The details of Matrices $A$, $D$ and two models can be found in @finley2017applying. Here we use the response NNGP model to show how to construct matrix $A$ and $D$. Let $N(s_i)$ be at most $M$ closest points to $s_i$ among the locations indexed less than $i$. The $i$ th row ($i > 1$) of $A$ has nonzero entries on positions indexed by $N(s_i)$, and the nonzero entries are calculated by
 \begin{equation} \label{eq: A_construct}
 A(i, N(s_i)) = C_\theta(s_i, N(s_i))(C_\theta(N(s_i), N(s_i)) + \tau^2I)^{-1}
 \end{equation}
@@ -139,7 +138,7 @@ The following block shows the elements needed for NNGP based models
 ```
 Here the design matrix X contains an initial column of 1s, P is the number of regression coefficients, and M is the number of nearest neighbors (maximum number of elements in each row of $n \times n$ sparse matrix $A$). Notice that we provide three matrices `NN_ind`, `NN_dist` and `NN_distM`:
 
-\item `NN_ind` is a two-dimensional array of indices whose $i - 1$th row shows at most $M$ closest points to $s_i$ among the locations indexed less that $i$.
+\item `NN_ind` is a two-dimensional array of indices whose $i - 1$th row shows at most $M$ closest points to $s_i$ among the locations indexed less than $i$.
 
 \item`NN_dist` is a matrix whose $i - 1$th row contains the distance of $i$th location to its selected neighbors. 
 
@@ -163,13 +162,13 @@ Check_Neighbors(NN.matrix$coords.ord, n.neighbors = M, NN.matrix, ind = 200)
 ```
 
 ## Parameter and model block in Stan
-We assign Gaussian priors for $\sigma$ and $\tau$, a uniform prior for $\phi$ and a Gaussian prior for $\beta = \{\beta_0, \beta_1\}$. The following is the parameter and model block for a random-effects NNGP model.
+We assign Gaussian priors for $\sigma$ and $\tau$, an inverse gamma prior for $\phi$ and a Gaussian prior for $\beta = \{\beta_0, \beta_1\}$. The following is the parameter and model block for a random-effects NNGP model.
 ```{stan output.var="test", eval = F}
   parameters{
       vector[P + 1] beta;
       real<lower = 0> sigma;
       real<lower = 0> tau;
-      real<lower = ap, upper = bp> phi;
+      real<lower = 0> phi;
       vector[N] w;
   }
 
@@ -180,6 +179,7 @@ We assign Gaussian priors for $\sigma$ and $\tau$, a uniform prior for $\phi$ an
 
   model{
       beta ~ multi_normal_cholesky(uB, L_VB);
+      phi ~ inv_gamma(ap, bp);
       sigma ~ normal(0, ss);
       tau ~ normal(0, st);
       w ~ nngp_w(sigmasq, phi, NN_dist, NN_distM, NN_ind, N, M);
@@ -192,7 +192,7 @@ A small modification will make the code work for a response NNGP model:
       vector[P + 1] beta;
       real<lower = 0> sigma;
       real<lower = 0> tau;
-      real<lower = ap, upper = bp> phi;
+      real<lower = 0> phi;
   }
 
   transformed parameters {
@@ -202,6 +202,7 @@ A small modification will make the code work for a response NNGP model:
 
   model{
       beta ~ multi_normal_cholesky(uB, L_VB);
+      phi ~ inv_gamma(ap, bp);
       sigma ~ normal(0, ss);
       tau ~ normal(0, st);
       Y ~ nngp(X * beta, sigmasq, tausq, phi, NN_dist, NN_distM, NN_ind, N, M);
@@ -220,12 +221,12 @@ The log-likelihood of $y(S)$ in \\eqref{eq:response_NNGP} is given by:
 \]
 In the code below, vector `U` saves the results of $(I-A)(y(S) - X(S)^\top\beta)$, and vector `V` saves all the diagonal elements of Matrix $D$ scaled by $\sigma^2$. With this notation, the log-likelihood can be simplified as
 \begin{equation} \label{eq: ll_code}
--{1 \over 2}\{\sum_{i = 1}^N\log{V_{i}} +N \log{(\sigma^2)}+  {1\over \sigma^2} U^\top(U./V)\}
+-{1 \over 2}\{\sum_{i = 1}^N\log{V_{i}} +N \log{(\sigma^2)}+  {1\over \sigma^2} U^\top(U \oslash V)\}
 \end{equation}
 where all the elements in the likelihood are vectors. 
 
 In the calculation of vector $U = (I-A)(y(S) - X(S)^\top\beta)$, since we know that
-matrix $A$ has at most $M$ nonzero elements and the index of nonzero elements is given in `NN_ind`, there is no need for saving the $n \times n$ matrix $I-A$. Instead, we use a for loop to calculate $U$. Within each iteration, we first use `NN_dist` and `NN_distM` along with the updated parameter to obtain $A(i, N(s_i))$ by \\eqref{eq: D_construct} and $D(i, i)$ by \\eqref{eq: A_construct}, then use `NN_ind` and $y(S) - X(S)^\top\beta$ to calculate the $i$ th element of $U$. The flop required in each iteration is in the order of $M^3$. 
+matrix $A$ has at most $M$ nonzero elements and the index of nonzero elements is given in `NN_ind`, there is no need for saving the $n \times n$ matrix $I-A$. Instead, we use a for loop to calculate $U$. Within each iteration, we first use `NN_dist` and `NN_distM` along with the updated parameter to obtain $A(i, N(s_i))$ by \\eqref{eq: D_construct} and $D(i, i)$ by \\eqref{eq: A_construct}, then use `NN_ind` and $y(S) - X(S)^\top\beta$ to calculate the $i$ th element of $U$. The flops required in each iteration is in the order of $M^3$. 
 
 ```{stan output.var="test", eval = F}
   functions{
@@ -234,15 +235,11 @@ matrix $A$ has at most $M$ nonzero elements and the index of nonzero elements is
                      int N, int M){
 
           vector[N] V;
-          vector[N] YXb;
-          vector[N] U;
+          vector[N] YXb = Y - X_beta;
+          vector[N] U = YXb;
+          real kappa_p_1 = tausq / sigmasq + 1;
           int dim;
           int h;
-          real kappa_p_1;
-          real out;
-          kappa_p_1 = tausq / sigmasq + 1;
-          YXb = Y - X_beta;
-          U = YXb;
 
           for (i in 2:N) {
               matrix[ i < (M + 1) ? (i - 1) : M, i < (M + 1) ? (i - 1): M]
@@ -285,9 +282,8 @@ matrix $A$ has at most $M$ nonzero elements and the index of nonzero elements is
               }
           }
           V[1] = kappa_p_1;
-          out = - 0.5 * ( 1 / sigmasq * dot_product(U, (U ./ V)) +
+          return - 0.5 * ( 1 / sigmasq * dot_product(U, (U ./ V)) +
                           sum(log(V)) + N * log(sigmasq));
-          return out;
       }
   }
 ```
@@ -298,12 +294,14 @@ Now let's run the NNGP based models for the simulation data in the last section.
 First set parameters of priors:
 ```{r}
 P = 1                  # number of regression coefficients
+uB = rep(0, P + 1)     # mean vector in the Gaussian prior of beta
+VB = diag(P + 1)*1000  # covariance matrix in the Gaussian prior of beta
 ss = 3 * sqrt(2)       # scale parameter in the normal prior of sigma 
 st = 3 * sqrt(0.1)     # scale parameter in the normal prior of tau     
-ap = 3/1; bp = 3/0.1   # upper and lower bound of phi 
+ap = 3; bp = 0.5         # shape and scale parameter in the inv-gamma prior of phi 
 ```
 ## Response NNGP models in Stan
-The following chunk is the R code for running response NNGP models. It's worth mentioning that we use the response and design matrix sorted by the order from `NNMatrix` instead of the raw `Y` and `X` in the data block.  
+The following chunk is the R code for running response NNGP models. We use the response and design matrix sorted by the order from `NNMatrix` instead of the raw `Y` and `X` in the data block.  
 ```{r, message = F, results = 'hide', eval = T} 
 library(rstan)
 options(mc.cores = parallel::detectCores())
@@ -312,10 +310,9 @@ data <- list(N = N, M = M, P = P,
              NN_ind = NN.matrix$NN_ind, 
              NN_dist = NN.matrix$NN_dist, 
              NN_distM = NN.matrix$NN_distM,  
-             uB = rep(0, P + 1), VB = diag(P + 1)*1000,
-             ss = ss, st = st, ap = ap, bp = bp)
+             uB = uB, VB = VB, ss = ss, st = st, ap = ap, bp = bp)
 
-myinits <-list(list(beta = c(1, 5), sigma = 1, tau = 0.4, phi = 20), 
+myinits <-list(list(beta = c(1, 5), sigma = 1, tau = 0.5, phi = 12), 
                list(beta = c(5, 5), sigma = 1.5, tau = 0.2, phi = 5), 
                list(beta = c(0, 0), sigma = 2.5, tau = 0.1, phi = 9))
 
@@ -325,7 +322,7 @@ samples <- stan(
   data = data,
   init = myinits,
   pars = parameters,
-  iter = 400, 
+  iter = 600, 
   chains = 3,
   thin = 1,
   seed = 123
@@ -346,10 +343,9 @@ data <- list(N = N, M = M, P = P,
              NN_ind = NN.matrix$NN_ind, 
              NN_dist = NN.matrix$NN_dist, 
              NN_distM = NN.matrix$NN_distM, 
-             uB = rep(0, P + 1), VB = diag(P + 1)*1000,
-             ss = ss, st = st, ap = ap, bp = bp)
+             uB = uB, VB = VB, ss = ss, st = st, ap = ap, bp = bp)
 
-myinits <-list(list(beta = c(1, 5), sigma = 1, tau = 0.5, phi = 20, 
+myinits <-list(list(beta = c(1, 5), sigma = 1, tau = 0.5, phi = 12, 
                     w_b1 = rep(0, N)), 
                list(beta = c(5, 5), sigma = 1.5, tau = 0.2, phi = 5, 
                     w_b1 = rep(0.1, N)), 
@@ -362,7 +358,7 @@ samples_w <- stan(
   data = data,
   init = myinits,
   pars = parameters,
-  iter = 400, 
+  iter = 600, 
   chains = 3,
   thin = 1,
   seed = 123
@@ -371,7 +367,7 @@ samples_w <- stan(
 
 The full Stan program for random-effects NNGP model is in the file "nngp_random.stan". 
 ```{r}
-writeLines(readLines('nngp_random_b1.stan'))
+writeLines(readLines('nngp_random.stan'))
 ```
 
 
@@ -405,10 +401,9 @@ options(mc.cores = parallel::detectCores())
 data <- list(N = N, M = M, P = P, Y = Y[NN.matrix$ord], X = X[NN.matrix$ord, ], 
              NN_ind = NN.matrix$NN_ind, NN_dist = NN.matrix$NN_dist,
              NN_distM = NN.matrix$NN_distM, 
-             uB = rep(0, P + 1), VB = diag(P + 1)*1000,
-             ss = ss, st = st, ap = ap, bp = bp)
+             uB = uB, VB = VB, ss = ss, st = st, ap = ap, bp = bp)
 
-myinits <-list(list(beta = c(1, 5), sigma = 1, tau = 0.5, phi = 20, 
+myinits <-list(list(beta = c(1, 5), sigma = 1, tau = 0.5, phi = 12, 
                     w_b1 = rep(0, N)), 
                list(beta = c(5, 5), sigma = 1.5, tau = 0.2, phi = 5, 
                     w_b1 = rep(0.1, N)), 
@@ -421,7 +416,7 @@ samples_wb1 <- stan(
   data = data,
   init = myinits,
   pars = parameters,
-  iter = 400, 
+  iter = 600, 
   chains = 3,
   thin = 1,
   seed = 123
@@ -437,7 +432,7 @@ stan_trace(samples_wb1, pars = c("beta", "sigmasq", "tausq", "phi", "w_b1[1]",
 
 ##Discussion
 
-We recommend a response NNGP model for a large scale data analysis when the study focuses on the inference of parameter set $\theta$. On the other hand, random-effects NNGP models are preferred when the study needs the recovery of latent process $w(s)$. However, the convergence rate of the MCMC Chains from random-effects model could be prohibitively slow when the sample size is large, so we only recommend coding random-effects NNGP model in Stan when the sample size is small. For recovering latent process when the sample size is large, Package spNNGP provides an algorithm for random-effects NNGP model, which implements a "sequential" Gibbs sampler for updating the latent process. Conjugate NNGP models are also good options for recovering latent process $w(s)$. More details of NNGP based models can be found in @finley2017applying  
+We recommend a response NNGP model for a large scale data analysis when the study focuses on the inference of parameter set $\theta$. On the other hand, random-effects NNGP models are preferred when the study needs the recovery of latent process $w(s)$. However, the convergence rate of the MCMC Chains from random-effects model could be prohibitively slow when the sample size is large, so we only recommend coding random-effects NNGP model in Stan when the sample size is small. For recovering latent process when the sample size is large, Package spNNGP provides an algorithm for random-effects NNGP model, which implements a sequential Gibbs sampler for updating the latent process. Conjugate NNGP models are also good options for recovering latent process $w(s)$. More details of NNGP based models can be found in @finley2017applying  
 
 # References
 
@@ -489,6 +484,13 @@ references:
   volume: 50
   pages: 297-312
   issued:
-    year: 1988    
+    year: 1988  
+- id: tstan2017
+  title: Stan Modeling Language User’s Guide and Reference Manual
+  author:
+  - family: STAN DEVELOPMENT TEAM
+    given: 
+  issued:
+    year: 2017  
 ---
 

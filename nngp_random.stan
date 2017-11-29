@@ -5,11 +5,9 @@
                        matrix NN_distM, int[,] NN_ind, int N, int M){
 
           vector[N] V;
-          vector[N] I_Aw;
+          vector[N] I_Aw = w;
           int dim;
           int h;
-          real out;
-          I_Aw = w;
 
           for (i in 2:N) {
 
@@ -39,9 +37,7 @@
               }
 
               iNNCholL = cholesky_decompose(iNNdistM);
-              for (j in 1: dim){
-                  iNNcorr[j] = exp(- phi * NN_dist[(i - 1), j]);
-              }
+              iNNcorr = to_vector(exp(- phi * NN_dist[(i - 1), 1: dim]));
 
               v = mdivide_left_tri_low(iNNCholL, iNNcorr);
 
@@ -49,14 +45,12 @@
 
               v2 = mdivide_right_tri_low(v', iNNCholL);
 
-              for (j in 1:dim){
-                  I_Aw[i] = I_Aw[i] - v2[j] * w[NN_ind[(i - 1), j]];
-              }
+              I_Aw[i] = I_Aw[i] - v2 * w[NN_ind[(i - 1), 1:dim]];
+
           }
           V[1] = 1;
-          out = - 0.5 * ( 1 / sigmasq * dot_product(I_Aw, (I_Aw ./ V)) +
+          return - 0.5 * ( 1 / sigmasq * dot_product(I_Aw, (I_Aw ./ V)) +
                           sum(log(V)) + N * log(sigmasq));
-          return out;
       }
   }
 
@@ -87,7 +81,7 @@
       vector[P + 1] beta;
       real<lower = 0> sigma;
       real<lower = 0> tau;
-      real<lower = ap, upper = bp> phi;
+      real<lower = 0> phi;
       vector[N] w;
   }
 
@@ -98,6 +92,7 @@
 
   model{
       beta ~ multi_normal_cholesky(uB, L_VB);
+      phi ~ gamma(ap, bp);
       sigma ~ normal(0, ss);
       tau ~ normal(0, st);
       w ~ nngp_w(sigmasq, phi, NN_dist, NN_distM, NN_ind, N, M);
