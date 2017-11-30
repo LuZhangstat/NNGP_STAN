@@ -55,7 +55,7 @@ data <- list(N = N, M = M, P = P,
              uB = uB, VB = VB,ss = ss, st = st, ap = ap, bp = bp)
 
 myinits <-list(list(beta = c(1, 5), sigma = 1, tau = 0.5, phi = 12),
-               list(beta = c(5, 5), sigma = 1.5, tau = 0.2, phi = 3),
+               list(beta = c(5, 5), sigma = 1.5, tau = 0.2, phi = 5),
                list(beta = c(0, 0), sigma = 2.5, tau = 0.1, phi = 9))
 
 parameters <- c("beta", "sigmasq", "tausq", "phi")
@@ -177,5 +177,30 @@ print(max_treedepth_by_chain)
 
 launch_shinystan(samples_wb1)
 
+
+#------------------------------- Marginal GP ----------------------------------#
+options(mc.cores = parallel::detectCores())
+data <- list(N = N, P = P, Y = Y, X = X, coords = coords,
+             uB = uB, VB = VB, ss = ss, st = st, ap = ap, bp = bp)
+
+myinits <-list(list(beta = c(1, 5), sigma = 1, tau = 0.5, phi = 12), 
+               list(beta = c(5, 5), sigma = 1.5, tau = 0.2, phi = 5), 
+               list(beta = c(0, 0), sigma = 2.5, tau = 0.1, phi = 9))
+
+parameters <- c("beta", "sigmasq", "tausq", "phi")
+samples_GP <- stan(
+  file = "GP_marginal.stan",
+  data = data,
+  init = myinits,
+  pars = parameters,
+  iter = 600, 
+  chains = 3,
+  thin = 1,
+  seed = 123
+)
+
+print(samples_GP)
+stan_trace(samples_GP)
+stan_trace(samples_GP, inc_warmup = T)
 
 

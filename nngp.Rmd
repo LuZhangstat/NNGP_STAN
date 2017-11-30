@@ -298,7 +298,7 @@ uB = rep(0, P + 1)     # mean vector in the Gaussian prior of beta
 VB = diag(P + 1)*1000  # covariance matrix in the Gaussian prior of beta
 ss = 3 * sqrt(2)       # scale parameter in the normal prior of sigma 
 st = 3 * sqrt(0.1)     # scale parameter in the normal prior of tau     
-ap = 3; bp = 0.5         # shape and scale parameter in the inv-gamma prior of phi 
+ap = 3; bp = 0.5       # shape and scale parameter in the inv-gamma prior of phi 
 ```
 ## Response NNGP models in Stan
 The following chunk is the R code for running response NNGP models. We use the response and design matrix sorted by the order from `NNMatrix` instead of the raw `Y` and `X` in the data block.  
@@ -381,6 +381,37 @@ Response NNGP model is faster and easier to sample from posterior distribution t
 ```{r, fig.align="center", eval = T}
 print(samples)
 stan_trace(samples)
+```
+We also run the model with marginal GP likelihood as a benchmark for comparison. For the sake of simplicity, we suppress the full code and give the summary table below. The Stan code "GP_marginal.stan" and R code "nngp.R" are posted on the Github. The posterior estimates of the parameters from two models are similar, while the running time required for response NNGP model is much less than the basic GP. The efficiency of NNGP will be more obvious when the dataset gets larger.
+```{r, message = F, results = 'hide', echo = F, eval= T}
+options(mc.cores = parallel::detectCores())
+data <- list(N = N, P = P, Y = Y, X = X, coords = coords,
+             uB = uB, VB = VB, ss = ss, st = st, ap = ap, bp = bp)
+
+myinits <-list(list(beta = c(1, 5), sigma = 1, tau = 0.5, phi = 12), 
+               list(beta = c(5, 5), sigma = 1.5, tau = 0.2, phi = 5), 
+               list(beta = c(0, 0), sigma = 2.5, tau = 0.1, phi = 9))
+
+parameters <- c("beta", "sigmasq", "tausq", "phi")
+samples_GP <- stan(
+  file = "GP_marginal.stan",
+  data = data,
+  init = myinits,
+  pars = parameters,
+  iter = 600, 
+  chains = 3,
+  thin = 1,
+  seed = 123
+)
+```
+
+```{r, fig.align="center", eval = T}
+print(samples_GP)
+```
+  
+```{r, fig.align="center", eval = T}
+print(get_elapsed_time(samples))
+print(get_elapsed_time(samples_GP))
 ```
 
 ## Random-effects NNGP models for simulation study
