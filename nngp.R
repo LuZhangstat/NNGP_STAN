@@ -52,7 +52,7 @@ data <- list(N = N, M = M, P = P,
              Y = Y[NN.matrix$ord], X = X[NN.matrix$ord, ],
              NN_ind = NN.matrix$NN_ind, NN_dist = NN.matrix$NN_dist,
              NN_distM = NN.matrix$NN_distM,
-             uB = uB, VB = VB,ss = ss, st = st, ap = ap, bp = bp)
+             uB = uB, VB = VB, ss = ss, st = st, ap = ap, bp = bp)
 
 myinits <-list(list(beta = c(1, 5), sigma = 1, tau = 0.5, phi = 12),
                list(beta = c(5, 5), sigma = 1.5, tau = 0.2, phi = 5),
@@ -202,5 +202,4 @@ samples_GP <- stan(
 print(samples_GP)
 stan_trace(samples_GP)
 stan_trace(samples_GP, inc_warmup = T)
-
 

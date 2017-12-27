@@ -3,7 +3,7 @@ title: " Nearest Neighbor Gaussian Processes (NNGP) based models in Stan"
 author: |
   | Lu Zhang 
   | lu.zhang@ucla.edu
-date: "11/5/2017"
+date: "Dec 2017"
 output: 
   html_document:
     theme: cosmo #lumen # cosmo #spacelab #cerulean #flatly
@@ -382,7 +382,7 @@ Response NNGP model is faster and easier to sample from posterior distribution t
 print(samples)
 stan_trace(samples)
 ```
-We also run the model with marginal GP likelihood as a benchmark for comparison. For the sake of simplicity, we suppress the full code and give the summary table below. The Stan code "GP_marginal.stan" and R code "nngp.R" are posted on the Github. The posterior estimates of the parameters from two models are similar, while the running time required for response NNGP model is much less than the basic GP. The efficiency of NNGP will be more obvious when the dataset gets larger.
+We took the model with marginal GP likelihood as a benchmark for comparison. The comparison of NNGP to regular GP is conducted using plain Stan code for both models. The current NNGP Stan code is a proof of concept showing significant speed-up from NNGP algorithm, and further speed-up could be obtained by writing a built-in function in C++ for NNGP. For the sake of simplicity, we suppress the full code and give the summary table below. Regular GP with exponentiated quadratic covariance function could be coded using built-in cov_exp_quad function, which speeds up computation considerable. The posterior estimates of the parameters from two models are similar, while the running time required for response NNGP model is much less than the basic GP. The efficiency of NNGP will be more obvious when the dataset gets larger.
 ```{r, message = F, results = 'hide', echo = F, eval= T}
 options(mc.cores = parallel::detectCores())
 data <- list(N = N, P = P, Y = Y, X = X, coords = coords,
