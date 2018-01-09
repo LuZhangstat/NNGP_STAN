@@ -37,7 +37,7 @@
               }
 
               iNNCholL = cholesky_decompose(iNNdistM);
-              iNNcorr = to_vector(exp(- phi * NN_dist[(i - 1), 1: dim]));
+              iNNcorr = to_vector(exp(- phi * NN_dist[(i - 1), 1:dim]));
 
               v = mdivide_left_tri_low(iNNCholL, iNNcorr);
 

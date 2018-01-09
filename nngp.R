@@ -26,7 +26,7 @@ phi <- 3 / 0.5
 
 D <- as.matrix(dist(coords))
 R <- exp(- phi * D)
-w <- rmvn(1, rep(0, N), sigma.sq*R)
+w <- rmvn(1, rep(0, N), sigma.sq * R)
 Y <- rnorm(N, X %*% B + w, sqrt(tau.sq))
 
 #---------------------- Build neighbor index by NNMatrix ----------------------#

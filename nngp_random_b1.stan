@@ -2,7 +2,7 @@
 
   functions{
       real nngp_w_lpdf(vector w_b1, real sigmasq, real phi, matrix NN_dist,
-                       matrix NN_distM,int[,] NN_ind, int N, int M,
+                       matrix NN_distM, int[,] NN_ind, int N, int M,
                        real intercept){
 
           vector[N] V;

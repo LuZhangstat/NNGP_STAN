@@ -84,8 +84,8 @@
   }
 
   transformed parameters {
-      real sigmasq = sigma^2;
-      real tausq = tau^2;
+      real sigmasq = square(sigma);
+      real tausq = square(tau);
   }
 
   model{
