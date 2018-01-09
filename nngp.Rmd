@@ -163,7 +163,7 @@ Check_Neighbors(NN.matrix$coords.ord, n.neighbors = M, NN.matrix, ind = 200)
 
 ## Parameter and model block in Stan
 We assign Gaussian priors for $\sigma$ and $\tau$, an inverse gamma prior for $\phi$ and a Gaussian prior for $\beta = \{\beta_0, \beta_1\}$. The following is the parameter and model block for a random-effects NNGP model.
-```{stan output.var="test", eval = F}
+```{stan output.var = "test", eval = F}
   parameters{
       vector[P + 1] beta;
       real<lower = 0> sigma;
