@@ -250,7 +250,7 @@ div.tocify {
 <h1 class="title toc-ignore">Nearest Neighbor Gaussian Processes (NNGP) based models in Stan</h1>
 <h4 class="author"><em><p>Lu Zhang<br />
 <a href="mailto:lu.zhang@ucla.edu">lu.zhang@ucla.edu</a></p></em></h4>
-<h4 class="date"><em>Dec 2017</em></h4>
+<h4 class="date"><em>Jan 2018</em></h4>
 
 </div>
 
@@ -794,7 +794,7 @@ tausq   1.00
 phi     1.00
 lp__    1.01
 
-Samples were drawn using NUTS(diag_e) at Tue Jan  9 15:55:14 2018.
+Samples were drawn using NUTS(diag_e) at Thu Jan 11 21:05:23 2018.
 For each parameter, n_eff is a crude measure of effective sample size,
 and Rhat is the potential scale reduction factor on split chains (at 
 convergence, Rhat=1).</code></pre>
@@ -813,20 +813,20 @@ tausq     0.10    0.00 0.03   0.04   0.08   0.10   0.12   0.17   376 1.00
 phi       4.01    0.08 1.45   1.36   2.98   4.00   4.94   6.95   329 1.00
 lp__    -93.04    0.13 1.86 -97.67 -94.04 -92.55 -91.68 -90.64   221 1.01
 
-Samples were drawn using NUTS(diag_e) at Tue Jan  9 16:20:37 2018.
+Samples were drawn using NUTS(diag_e) at Thu Jan 11 21:30:10 2018.
 For each parameter, n_eff is a crude measure of effective sample size,
 and Rhat is the potential scale reduction factor on split chains (at 
 convergence, Rhat=1).</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">print</span>(<span class="kw">get_elapsed_time</span>(samples))</code></pre></div>
 <pre><code>         warmup  sample
-chain:1 55.6765 50.0293
-chain:2 68.7644 53.3172
-chain:3 62.7252 45.3186</code></pre>
+chain:1 50.9004 46.4715
+chain:2 63.8301 49.3553
+chain:3 58.2292 41.4215</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">print</span>(<span class="kw">get_elapsed_time</span>(samples_GP))</code></pre></div>
 <pre><code>         warmup  sample
-chain:1 579.543 426.636
-chain:2 643.144 458.997
-chain:3 588.560 465.146</code></pre>
+chain:1 543.382 425.185
+chain:2 607.659 461.697
+chain:3 550.918 466.079</code></pre>
 </div>
 <div id="random-effects-nngp-models-for-simulation-study-1" class="section level2">
 <h2><span class="header-section-number">4.2</span> Random-effects NNGP models for simulation study</h2>
@@ -848,7 +848,7 @@ w[2]     0.73    0.20 0.41 -0.07  0.44  0.72  1.02  1.53     4 1.29
 w[3]    -3.01    0.18 0.41 -3.78 -3.29 -3.00 -2.72 -2.25     5 1.29
 w[4]    -0.72    0.17 0.40 -1.50 -0.99 -0.73 -0.46  0.05     5 1.26
 
-Samples were drawn using NUTS(diag_e) at Tue Jan  9 16:00:41 2018.
+Samples were drawn using NUTS(diag_e) at Thu Jan 11 21:10:45 2018.
 For each parameter, n_eff is a crude measure of effective sample size,
 and Rhat is the potential scale reduction factor on split chains (at 
 convergence, Rhat=1).</code></pre>
@@ -874,7 +874,7 @@ w_b1[2]  1.67    0.01 0.33  0.97  1.46  1.68  1.90  2.28   900 1.00
 w_b1[3] -2.07    0.01 0.29 -2.65 -2.26 -2.07 -1.88 -1.51   900 1.00
 w_b1[4]  0.23    0.01 0.30 -0.35  0.03  0.23  0.42  0.82   900 1.00
 
-Samples were drawn using NUTS(diag_e) at Tue Jan  9 16:24:45 2018.
+Samples were drawn using NUTS(diag_e) at Thu Jan 11 21:34:30 2018.
 For each parameter, n_eff is a crude measure of effective sample size,
 and Rhat is the potential scale reduction factor on split chains (at 
 convergence, Rhat=1).</code></pre>
@@ -887,8 +887,21 @@ convergence, Rhat=1).</code></pre>
 <p>We recommend a response NNGP model for a large scale data analysis when the study focuses on the inference of parameter set <span class="math inline">\(\theta\)</span>. On the other hand, random-effects NNGP models are preferred when the study needs the recovery of latent process <span class="math inline">\(w(s)\)</span>. However, the convergence rate of the MCMC Chains from random-effects model could be prohibitively slow when the dataset is large, so we only recommend coding random-effects NNGP model in Stan when the dataset is small. For recovering latent process when the dataset is large, Package spNNGP provides an algorithm for random-effects NNGP model, which implements a sequential Gibbs sampler for updating the latent process. Conjugate NNGP models are also good options for recovering latent process <span class="math inline">\(w(s)\)</span>. More details of NNGP based models can be found in <span class="citation">Finley et al. (2017)</span></p>
 </div>
 </div>
-<div id="references" class="section level1 unnumbered">
-<h1>References</h1>
+<div id="sessioninfo-and-references" class="section level1">
+<h1><span class="header-section-number">5</span> SessionInfo and References</h1>
+<div id="acknowledgments" class="section level2">
+<h2><span class="header-section-number">5.1</span> Acknowledgments</h2>
+<p>I warmly thank Michael Betancourt and Aki Vehtari for useful comments and suggestions, as well as Bob Carpenter and the Stan team for their generous hospitality.</p>
+</div>
+<div id="licenses" class="section level2">
+<h2><span class="header-section-number">5.2</span> Licenses</h2>
+<ul>
+<li>Code © 2018, Lu Zhang, licensed under <a href="https://opensource.org/licenses/BSD-3-Clause">BSD (3-clause)</a>.</li>
+<li>Text © 2018, Lu Zhang, licensed under <a href="https://creativecommons.org/licenses/by-nc/4.0/">CC-BY NC 4.0</a>.</li>
+</ul>
+</div>
+<div id="references" class="section level2 unnumbered">
+<h2>References</h2>
 <div id="refs" class="references">
 <div id="ref-datta2016hierarchical">
 <p>Datta, Abhirup, Sudipto Banerjee, Andrew O Finley, and Alan E Gelfand. 2016. “Hierarchical Nearest-Neighbor Gaussian Process Models for Large Geostatistical Datasets” 111. Taylor &amp; Francis: 800–812.</p>
@@ -901,6 +914,7 @@ convergence, Rhat=1).</code></pre>
 </div>
 <div id="ref-ve88">
 <p>Vecchia, A. V. 1988. “Estimation and Model Identification for Continuous Spatial Processes.”</p>
+</div>
 </div>
 </div>
 </div>

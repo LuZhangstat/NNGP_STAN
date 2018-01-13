@@ -3,7 +3,7 @@ title: " Nearest Neighbor Gaussian Processes (NNGP) based models in Stan"
 author: |
   | Lu Zhang 
   | lu.zhang@ucla.edu
-date: "Dec 2017"
+date: "Jan 2018"
 output: 
   html_document:
     theme: cosmo #lumen # cosmo #spacelab #cerulean #flatly
@@ -427,7 +427,7 @@ It is not surprising to see a slower convergence rate and worse mixing of the MC
 
 Notice the trace plot of random-effects $w$ are highly correlated with the intercept, we modified the code and make the random-effects $w(s)$ centered at the intercept. The code of modified random-effects NNGP model can be found in "nngp.R" and "nngp_random_b1.stan". Here we suppress the details of the code and show the results directly:
 
-```{r, message = F, results = 'hide', echo = F, eval= T}
+```{r, message = F, results = 'hide', echo = F, eval = T}
 options(mc.cores = parallel::detectCores())
 data <- list(N = N, M = M, P = P, Y = Y[NN.matrix$ord], X = X[NN.matrix$ord, ], 
              NN_ind = NN.matrix$NN_ind, NN_dist = NN.matrix$NN_dist,
@@ -465,7 +465,17 @@ stan_trace(samples_wb1, pars = c("beta", "sigmasq", "tausq", "phi", "w_b1[1]",
 
 We recommend a response NNGP model for a large scale data analysis when the study focuses on the inference of parameter set $\theta$. On the other hand, random-effects NNGP models are preferred when the study needs the recovery of latent process $w(s)$. However, the convergence rate of the MCMC Chains from random-effects model could be prohibitively slow when the dataset is large, so we only recommend coding random-effects NNGP model in Stan when the dataset is small. For recovering latent process when the dataset is large, Package spNNGP provides an algorithm for random-effects NNGP model, which implements a sequential Gibbs sampler for updating the latent process. Conjugate NNGP models are also good options for recovering latent process $w(s)$. More details of NNGP based models can be found in @finley2017applying  
 
-# References
+# SessionInfo and References
+
+## Acknowledgments
+I warmly thank Michael Betancourt and Aki Vehtari for useful comments and suggestions, as well as Bob Carpenter and the Stan team for their generous hospitality.
+
+## Licenses
+
+* Code &copy; 2018, Lu Zhang, licensed under [BSD (3-clause)](https://opensource.org/licenses/BSD-3-Clause).
+* Text &copy; 2018, Lu Zhang, licensed under [CC-BY NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/).
+
+## References
 
 ---
 references:
@@ -524,4 +534,6 @@ references:
   issued:
     year: 2017  
 ---
+
+
 
