@@ -1,4 +1,4 @@
-  /* Random-effects NNGP model with spatial random effect centered at intercept */
+  /* Latent NNGP model with spatial latent process centered at the intercept */
 
   functions{
       real nngp_w_lpdf(vector w_b1, real sigmasq, real phi, matrix NN_dist,

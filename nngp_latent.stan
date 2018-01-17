@@ -1,4 +1,4 @@
-  /* Random-effects NNGP models*/
+  /* Latent NNGP model*/
 
   functions{
       real nngp_w_lpdf(vector w, real sigmasq, real phi, matrix NN_dist,
