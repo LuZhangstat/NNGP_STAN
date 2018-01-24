@@ -6,15 +6,23 @@ author: |
 date: "Jan 2018"
 output: 
   html_document:
-    theme: cosmo #default #cosmo #lumen # cosmo #spacelab #cerulean #flatly
-    highlight: tango # textmate #tango  #null
+    css: custom.css
+#    theme: cosmo #default #cosmo #lumen # cosmo #spacelab #cerulean #flatly
+#    highlight: tango # textmate #tango  #null
     toc: true
     toc_depth: 2
-    number_sections: True
-    toc_float: 
-      collapsed: false
-      smooth_scroll: false
 ---
+
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+  TeX: { 
+      equationNumbers: { 
+            autoNumber: "AMS",
+            formatNumber: function (n) {return n}
+      } 
+  }
+});
+</script>
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, tidy = F, warning=FALSE, comment=NA)
@@ -31,7 +39,7 @@ We envision a spatial regression model at any location $s$
 \end{equation}
 where, usually, $m_{\theta}(s) = x(s)^{\top}\beta$ and $w(s)$ is a latent spatial process capturing spatial dependence. Let $S$ be the set of $n$ observed locations.
 If we model the process $w(s)$ with a Gaussian process $w(s) \sim GP(0, C_\theta(\cdot, \cdot))$, then a customary Bayesian hierarchical models for observations on $S = \{s_1, \ldots, s_N\}$ can be constructed as
-\begin{equation}\label{eq: latent model}
+\begin{equation} \label{eq: latent_model}
 \mathcal{p}(\theta) \; \times \; \mathcal{N}(w(S)\;|\;0, C_\theta(S,S)) \; \times \; \mathcal{N}(y(S)\;|\; m_\theta(S) + w(S), \tau^2 I_n)
 \end{equation}
 Another implementation of GP is to marginalize over the latent process $w(s)$ and construct the outcome process $y(s)$ directly with a GP. By integrating out $w(s)$, we have a more parsimonious model whose parameters set collapses from $\{\theta, w\}$ to $\{\theta\}$. In a Bayesian setting, $\theta$ will be sampled from its posterior distribution
@@ -46,8 +54,8 @@ process in the models discussed in the preceding subsection. The likelihoods of 
 \begin{equation}\label{eq: latent NNGP model}
 \mathcal{p} (\theta) \; \times \; \mathcal{N}(w(S) \;|\; 0, C^*) \; \times \; \mathcal{N}(y(S) \;|\; m_\theta(S)+w(S), \tau^2 I_n) \;,
 \end{equation}
-where $C^{*-1} = (I-A^*)^\top D^{*-1}(I-A^*)$ is the precision matrix of the latent process $w(s)$ over $S$. Here $A^*$ is sparse and strictly lower triangular with at most $M$($M \ll N$) non-zero entries in each row, and $D^*$ is a diagonal matrix.
-One can readily calculate the determinant of $C^*$ by the product of the diagonal elements in $D^*$. The likelihood of $w(S)$ based on precision matrix $C^{*-1}$ serves as a good approximation to the likelihood of $w(s)$ in \\eqref{eq: latent model}, while the storage and computational burden of the former is linear in $N$.  
+where $C^{*-1} = (I-A^*)^\top D^{*-1}(I-A^*)$ is the precision matrix of the latent process $w(s)$ over $S$. Here $A^*$ is a sparse and strictly lower triangular matrix with at most $M$($M \ll N$) non-zero entries in each row, and $D^*$ is a diagonal matrix.
+One can readily calculate the determinant of $C^*$ by the product of the diagonal elements in $D^*$. The likelihood of $w(S)$ based on precision matrix $C^{*-1}$ serves as a good approximation to the likelihood of $w(s)$ in \\eqref{eq: latent_model}, while the storage and computational burden of the former is linear in $N$.  
 
 A response NNGP model yields posterior distribution:
 \begin{equation} \label{eq:response_NNGP}
@@ -414,9 +422,9 @@ stan_trace(samples_w, pars = c("beta", "sigmasq", "tausq", "phi", "w[1]",
                                "w[2]","w[3]", "w[4]"))
 ```
 
-It is not surprising to see a slower convergence rate and worse mixing of the MCMC Chains. Response NNGP model marginalizes out the spatial effects $w$, yields a lower-dimensional parameter space, hence drastically improves the posterior geometry. While the parameters to be estimated in a latent NNGP model $\{\theta, w\}$ are highly correlated, and the number of parameters is on the scale of the number of observations. Thus the convergence rate of MCMC chains from a latent NNGP model is slow because of the high correlation and dimension of the parameter space. 
+It is not surprising to see a slower convergence rate and worse mixing of the MCMC Chains. Response NNGP model marginalizes out the latent process $w$, yields a lower-dimensional parameter space, hence drastically improves the posterior geometry. While the parameters to be estimated in a latent NNGP model $\{\theta, w\}$ are highly correlated, and the number of parameters is on the scale of the number of observations. Thus the convergence rate of MCMC chains from a latent NNGP model is slow because of the high correlation and dimension of the parameter space. 
 
-Notice the trace plot of random effects $w$ are highly correlated with the intercept, we modified the code and make the latent process $w(s)$ centered at the intercept. The code of modified latent NNGP model can be found in "nngp.R" and "nngp_latent_b1.stan". Here we suppress the details of the code and show the results directly:
+Notice the trace plot of the latent process $w$ over observed locations are highly correlated with the intercept, we modified the code and make the latent process $w(s)$ centered at the intercept. The code of modified latent NNGP model can be found in "nngp.R" and "nngp_latent_b1.stan". Here we suppress the details of the code and show the results directly:
 
 ```{r, message = F, results = 'hide', echo = F, eval = T}
 options(mc.cores = parallel::detectCores())
