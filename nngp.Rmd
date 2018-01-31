@@ -7,10 +7,9 @@ date: "Jan 2018"
 output: 
   html_document:
     css: custom.css
-#    theme: cosmo #default #cosmo #lumen # cosmo #spacelab #cerulean #flatly
-#    highlight: tango # textmate #tango  #null
     toc: true
     toc_depth: 2
+bibliography: nngpstan.bib
 ---
 
 <script type="text/x-mathjax-config">
@@ -30,7 +29,7 @@ knitr::opts_chunk$set(echo = TRUE, tidy = F, warning=FALSE, comment=NA)
 
 
 # NNGP Based Models
-Nearest Neighbor Gaussian Processes (NNGP) based models is a family of highly scalable Gaussian processes based models. In brief, NNGP extends the Vecchia's approximation (@ve88) to a process using conditional independence given information from neighboring locations. In this section, I will briefly review response and latent NNGP models. For more details of NNGP, please refer to @datta2016hierarchical. 
+Nearest Neighbor Gaussian Processes (NNGP) based models is a family of highly scalable Gaussian processes based models. In brief, NNGP extends the Vecchia's approximation (@ve88) to a process using conditional independence given information from neighboring locations. In this section, I will briefly review response and latent NNGP models. For more details and applications of NNGP, please refer to [@datta16] and [@datta16b]. 
 
 ## Spatial regression model
 We envision a spatial regression model at any location $s$
@@ -46,11 +45,11 @@ Another implementation of GP is to marginalize over the latent process $w(s)$ an
 \begin{equation}\label{eq: response model}
 \mathcal{p}(\theta \;|\; y(S)) \; \propto \; \mathcal{p}(\theta) \; \times \; \mathcal{N} (y(S)\;|\;m_{\theta}(S), C_\theta(S, S) + \tau^2 I_n) 
 \end{equation}
-To distinguish these two models, we shall call the former as a latent GP model, and the latter as a response GP model. These two models are referred as the latent variable GP and the marginal likelihood GP in Stan reference manual (@tstan2017).
+To distinguish these two models, we shall call the former as a latent GP model, and the latter as a response GP model. These two models are referred as the latent variable GP and the marginal likelihood GP in Stan reference manual (@t2017stan).
 
 ## Latent and Response NNGP models
 Nearest neighbor Gaussian process (NNGP) provides an alternative to the Gaussian
-process in the models discussed in the preceding subsection. The likelihoods of two models basing on NNGP derived from the original Gaussian process coincide with the Vecchia's approximation [@ve88] of the original models. In particular, a latent NNGP model has a posterior distribution proportional to 
+process in the models discussed in the preceding subsection. The likelihoods of two models basing on NNGP derived from the original Gaussian process coincide with the Vecchia's approximation (@ve88) of the original models. In particular, a latent NNGP model has a posterior distribution proportional to 
 \begin{equation}\label{eq: latent NNGP model}
 \mathcal{p} (\theta) \; \times \; \mathcal{N}(w(S) \;|\; 0, C^*) \; \times \; \mathcal{N}(y(S) \;|\; m_\theta(S)+w(S), \tau^2 I_n) \;,
 \end{equation}
@@ -227,7 +226,7 @@ where all the elements in the likelihood are vectors.
 In the calculation of vector $U = (I-A)(y(S) - X(S)^\top\beta)$, since we know that
 matrix $A$ has at most $M$ nonzero elements and the index of nonzero elements is given in `NN_ind`, there is no need for saving the $n \times n$ matrix $I-A$. Instead, we use a for loop to calculate $U$. Within each iteration, we first use `NN_dist` and `NN_distM` along with the updated parameter to obtain $A(i, N(s_i))$ by \\eqref{eq: D_construct} and $D(i, i)$ by \\eqref{eq: A_construct}, then use `NN_ind` and $y(S) - X(S)^\top\beta$ to calculate the $i$ th element of $U$. The flops required in each iteration is in the order of $M^3$. 
 
-```{stan output.var="test", eval = F}
+```{stan output.var = "test", eval = F}
   functions{
       real nngp_lpdf(vector Y, vector X_beta, real sigmasq, real tausq,
                      real phi, matrix NN_dist, matrix NN_distM, int[,] NN_ind,
@@ -475,64 +474,5 @@ I warmly thank Michael Betancourt and Aki Vehtari for useful comments and sugges
 * Text &copy; 2018, Lu Zhang, licensed under [CC-BY NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/).
 
 ## References
-
----
-references:
-- id: datta2016hierarchical
-  title: Hierarchical nearest-neighbor Gaussian process models for large geostatistical datasets
-  author:
-  - family: Datta
-    given: Abhirup
-  - family: Banerjee
-    given: Sudipto
-  - family: Finley
-    given: Andrew O
-  - family: Gelfand
-    given: Alan E
-  journal: Journal of the American Statistical Association
-  volume: 111
-  number: 514
-  page: 800-812
-  type: article-journal
-  publisher: Taylor \& Francis
-  issued:
-    year: 2016
-- id: finley2017applying
-  title: Applying Nearest Neighbor Gaussian Processes to Massive Spatial Data Sets Forest Canopy Height Prediction Across Tanana Valley Alaska
-  author:
-  - family: Finley
-    given: Andrew O
-  - family: Datta
-    given: Abhirup
-  - family: Cook
-    given: Bruce C
-  - family: Morton
-    given: Douglas C
-  - family: Andersen
-    given: Hans E
-  - family: Banerjee
-    given: Sudipto
-  journal: arXiv preprint arXiv:1702.00434
-  issued:
-    year: 2017
-- id: ve88
-  title: Estimation and Model Identification for Continuous Spatial Processes
-  author:
-  - family: Vecchia
-    given: A. V.
-  journal: Journal of the Royal Statistical society, Series B
-  volume: 50
-  pages: 297-312
-  issued:
-    year: 1988  
-- id: tstan2017
-  title: Stan Modeling Language User’s Guide and Reference Manual
-  author:
-  - family: STAN DEVELOPMENT TEAM
-    given: 
-  issued:
-    year: 2017  
----
-
 
 
