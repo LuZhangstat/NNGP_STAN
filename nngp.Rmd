@@ -33,47 +33,61 @@ Nearest Neighbor Gaussian Processes (NNGP) based models is a family of highly sc
 
 ## Spatial regression model
 We envision a spatial regression model at any location $s$
+
 \begin{equation}\label{eq: spatial_regression_model}
  y(s) = m_{\theta}(s) + w(s) + \epsilon(s)\;,\quad \epsilon(s) \stackrel{iid}{\sim}  \mathcal{N}(0,\tau^2) \;,
 \end{equation}
+
 where, usually, $m_{\theta}(s) = x(s)^{\top}\beta$ and $w(s)$ is a latent spatial process capturing spatial dependence. Let $S$ be the set of $n$ observed locations.
 If we model the process $w(s)$ with a Gaussian process $w(s) \sim GP(0, C_\theta(\cdot, \cdot))$, then a customary Bayesian hierarchical models for observations on $S = \{s_1, \ldots, s_N\}$ can be constructed as
+
 \begin{equation} \label{eq: latent_model}
 \mathcal{p}(\theta) \; \times \; \mathcal{N}(w(S)\;|\;0, C_\theta(S,S)) \; \times \; \mathcal{N}(y(S)\;|\; m_\theta(S) + w(S), \tau^2 I_n)
 \end{equation}
+
 Another implementation of GP is to marginalize over the latent process $w(s)$ and construct the outcome process $y(s)$ directly with a GP. By integrating out $w(s)$, we have a more parsimonious model whose parameters set collapses from $\{\theta, w\}$ to $\{\theta\}$. In a Bayesian setting, $\theta$ will be sampled from its posterior distribution
+
 \begin{equation}\label{eq: response model}
 \mathcal{p}(\theta \;|\; y(S)) \; \propto \; \mathcal{p}(\theta) \; \times \; \mathcal{N} (y(S)\;|\;m_{\theta}(S), C_\theta(S, S) + \tau^2 I_n) 
 \end{equation}
+
 To distinguish these two models, we shall call the former as a latent GP model, and the latter as a response GP model. These two models are referred as the latent variable GP and the marginal likelihood GP in Stan reference manual (@t2017stan).
 
 ## Latent and Response NNGP models
 Nearest neighbor Gaussian process (NNGP) provides an alternative to the Gaussian
 process in the models discussed in the preceding subsection. The likelihoods of two models basing on NNGP derived from the original Gaussian process coincide with the Vecchia's approximation (@ve88) of the original models. In particular, a latent NNGP model has a posterior distribution proportional to 
+
 \begin{equation}\label{eq: latent NNGP model}
 \mathcal{p} (\theta) \; \times \; \mathcal{N}(w(S) \;|\; 0, C^*) \; \times \; \mathcal{N}(y(S) \;|\; m_\theta(S)+w(S), \tau^2 I_n) \;,
 \end{equation}
+
 where $C^{*-1} = (I-A^*)^\top D^{*-1}(I-A^*)$ is the precision matrix of the latent process $w(s)$ over $S$. Here $A^*$ is a sparse and strictly lower triangular matrix with at most $M$($M \ll N$) non-zero entries in each row, and $D^*$ is a diagonal matrix.
 One can readily calculate the determinant of $C^*$ by the product of the diagonal elements in $D^*$. The likelihood of $w(S)$ based on precision matrix $C^{*-1}$ serves as a good approximation to the likelihood of $w(s)$ in \\eqref{eq: latent_model}, while the storage and computational burden of the former is linear in $N$.  
 
 A response NNGP model yields posterior distribution:
+
 \begin{equation} \label{eq:response_NNGP}
 \mathcal{p}(\theta \;|\; y(S)) \; \propto \; \mathcal{p}(\theta) \; \times \; \mathcal{N}(y(S)\;|\;m_{\theta}(S), \{C_\theta + \tau^2 I\}^*) \;,
 \end{equation}
+
 where $\{C_\theta + \tau^2 I\}^{*-1} = (I-A)^\top D^{-1}(I-A)$, analogous to the 
 latent NNGP model, can be treated as an approximation of $\{C_\theta(S, S)+\tau^2I_n\}^{-1}$. Notice that although one can obtain the response GP model by integrating out the latent process in a latent GP model, the corresponding NNGP model doesn't have this property. 
 
 
 ## Construction of $A$, $D$
 The details of Matrices $A$, $D$ and two models can be found in @finley2017applying. Here we use the response NNGP model to show how to construct matrix $A$ and $D$. Let $N(s_i)$ be at most $M$ closest points to $s_i$ among the locations indexed less than $i$. The $i$ th row ($i > 1$) of $A$ has nonzero entries on positions indexed by $N(s_i)$, and the nonzero entries are calculated by
+
 \begin{equation} \label{eq: A_construct}
 A(i, N(s_i)) = C_\theta(s_i, N(s_i))(C_\theta(N(s_i), N(s_i)) + \tau^2I)^{-1} 
 \end{equation}
+
 And the $i$ th element on the diagonal of $D$ satisfies
+
 \begin{equation} \label{eq: D_construct}
 D(i, i) = C_\theta(s_i, s_i) + \tau^2 -  
 C_\theta(s_i, N(s_i))(C_\theta(N(s_i), N(s_i)) + \tau^2I)^{-1}C_\theta(N(s_i), s_i)
 \end{equation}
+
 These equations are derived from the distribution of $E[y(s_i) \; | \; y(N(s_i))]$. The nonzero entries in each row of $A$ are precisely the weights obtained by predicting $y(s_i)$, or "kriging", based upon the values of $y(s)$ at neighboring locations, i.e., $N(s_i)$. And the diagonal elements in $D$ are the variance of $y(s_i)$ conditioning on its' neighbors in the "past" $y(N(s_i))$.
 
 
@@ -82,13 +96,17 @@ In this section, I will use a simulation data to show how to code NNGP based mod
 
 ## Intro of simulation data{#sec:sim_data}
 We generated response $Y$ along with a covariate $x$ at $n = 500$ randomly sited locations in a unit square domain by the following model:
+
 \begin{equation}
 y(s) = \beta_0 + x(s)\beta_1 + w(s) + \epsilon(s), \hspace{1cm} \epsilon(s) \sim N(0, \tau^2) \;,
 \end{equation}
+
 where the zero-centered spatial latent process $w(s)$ were sampled from a Gaussian process with a covariance function $C_\theta$ specified by exponential:
+
 \begin{equation}\label{exp_K}
 C_\theta(s_i, s_j) = \sigma^2 \exp(-\phi||s_i-s_j||)\;, \hspace{0.5cm} s_i,s_j \in S
 \end{equation} 
+
 The predictor $x$ were generated from $N(0, 1)$. The setting of parameters is listed in the code.
 ```{r, echo = F}
 setwd("/Users/luzhang/Documents/github/NNGP_STAN")
@@ -214,13 +232,17 @@ The hardest part in coding NNGP in Stan is the user-defined likelihood, specific
 Here we use `nngp` to illustrate the main idea of coding NNGP likelihood. 
 
 The log-likelihood of $y(S)$ in \\eqref{eq:response_NNGP} is given by:
+
 \[
 -{1 \over 2}\sum_{i = 1}^N\log{D_{ii}} - {1 \over 2}{(y(S) - X(S)^\top\beta)^\top (I-A)^T D^{-1} (I-A)(y(S) - X(S)^\top\beta)}
 \]
+
 In the code below, vector `U` saves the results of $(I-A)(y(S) - X(S)^\top\beta)$, and vector `V` saves all the diagonal elements of Matrix $D$ scaled by $\sigma^2$. With this notation, the log-likelihood can be simplified as
+
 \begin{equation} \label{eq: ll_code}
 -{1 \over 2}\{\sum_{i = 1}^N\log{V_{i}} +N \log{(\sigma^2)}+  {1\over \sigma^2} U^\top(U \oslash V)\} \;,
 \end{equation}
+
 where all the elements in the likelihood are vectors. 
 
 In the calculation of vector $U = (I-A)(y(S) - X(S)^\top\beta)$, since we know that

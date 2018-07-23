@@ -1,7 +1,9 @@
 library(spNNGP)       # Build neighbor index
 
 #### distance matrix for location i and its neighbors ####
-i_dist <- function(i, neighbor_index, s)	dist(s[c(i, neighbor_index[[i - 1]]), ])
+i_dist <- function(i, neighbor_index, s){
+  dist(s[c(i, neighbor_index[[i - 1]]), ])
+}	
 
 get_NN_distM <- function (ind, ind_distM_d) {
   if (ind < M ){l = ind } else {l = M}; 
@@ -29,15 +31,26 @@ get_NN_ind <- function (ind, ind_distM_i) {
 }
 
 
-#### wrap up in function NNMatrix ####
+#### NNMatrix: A wrapper of spConjNNGP to build Nearest Neighbor matrics ####
+##' coords:        An n x 2 matrix of the observation coordinates in R^2
+##' n.neighbors:   Number of neighbors used in the NNGP.  
+##' n.omp.threads: A positive integer indicating the number of threads to use 
+##'                for SMP parallel processing. 
+##' search.type:   a quoted keyword that specifies type of nearest neighbor 
+##'                search algorithm. Supported method key words are: "tree" 
+##'                and "brute"both will yield the same solution but "tree" 
+##'                should be much faster.
+####
 
-NNMatrix <- function(coords, n.neighbors, n.omp.threads = 2){
+NNMatrix <- function(coords, n.neighbors, n.omp.threads = 2,
+                     search.type = "tree"){
   
   N <- nrow(coords)
   m.c <- spConjNNGP(rep(0, N) ~ 1, coords = coords,
-                    n.neighbors = n.neighbors,
+                    n.neighbors = n.neighbors, k.fold = 1,
                     theta.alpha = c("phi" = 5, "alpha" = 0.5),
-                    k.fold = 1, n.omp.threads = n.omp.threads,
+                    n.omp.threads = n.omp.threads,
+                    search.type = search.type,
                     return.neighbors = T, sigma.sq.IG = c(2, 1),
                     cov.model = "exponential", verbose = F)
   
