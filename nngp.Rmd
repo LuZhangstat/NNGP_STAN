@@ -3,7 +3,7 @@ title: " Nearest Neighbor Gaussian Processes (NNGP) based models in Stan"
 author: |
   | Lu Zhang 
   | lu.zhang@ucla.edu
-date: "Jan 2018"
+date: "Jan 2018 (revised on June 2020)"
 output: 
   html_document:
     css: custom.css
@@ -75,7 +75,7 @@ latent NNGP model, can be treated as an approximation of $\{C_\theta(S, S)+\tau^
 
 
 ## Construction of $A$, $D$
-The details of Matrices $A$, $D$ and two models can be found in @finley2017applying. Here we use the response NNGP model to show how to construct matrix $A$ and $D$. Let $N(s_i)$ be at most $M$ closest points to $s_i$ among the locations indexed less than $i$. The $i$ th row ($i > 1$) of $A$ has nonzero entries on positions indexed by $N(s_i)$, and the nonzero entries are calculated by
+The details of Matrices $A$, $D$ and two models can be found in @finley2019efficient. Here we use the response NNGP model to show how to construct matrix $A$ and $D$. Let $N(s_i)$ be at most $M$ closest points to $s_i$ among the locations indexed less than $i$. The $i$ th row ($i > 1$) of $A$ has nonzero entries on positions indexed by $N(s_i)$, and the nonzero entries are calculated by
 
 \begin{equation} \label{eq: A_construct}
 A(i, N(s_i)) = C_\theta(s_i, N(s_i))(C_\theta(N(s_i), N(s_i)) + \tau^2I)^{-1} 
@@ -163,7 +163,7 @@ Here the design matrix X contains an initial column of 1s, P is the number of re
 These three matrices are required for constructing the sparse lower triangular matrix $A$, and the diagonal matrix $D$. Since they are fixed across the MCMC updates, we recommend user to provide them in the data segment. Next, I will show how to efficiently generate the matrices listed above. 
 
 ### Build neighbor index
-File "NNmatrix.R" provides a wrapper function in R that uses package spNNGP, which has a fast algorithm of building neighbor index, to generate the required matrices in the Stan data segment. Here `n.omp.threads` indicates the number of threads to use for parallel processing.
+File "NNmatrix.R" provides `NNmatrix`, a wrapper function of `spConjNNGP` in package spNNGP, which offers a fast algorithm of building neighbor index and generates the required matrices in the Stan data segment. Here `n.omp.threads` indicates the number of threads to use for parallel processing. 
 ```{r, results = 'hide', message= F}
 source("NNmatrix.R")
 M = 6                 # Number of Nearest Neighbors
@@ -172,7 +172,7 @@ str(NN.matrix)
 ```
 
 ### Check Neighbors (for fun)
-We can use function `Check_Neighbors` in "NNmatrix.R" for checking the nearest neighbor index. It is important to point out that `NNMatrix` sorts coordinates on the first column before building the neighbor index. Thus we should use the sorted response and design matrix instead of the raw data in the data block.
+We can use function `Check_Neighbors` in "NNmatrix.R" for checking the nearest neighbor index. In this example, we use the default x-axis ordering provided in `NNMatrix`, which sorts coordinates on the first column before building the neighbor index. Thus we use the sorted response and design matrix instead of the raw data in the data block. One can also specify other order of coordinates through the 'ord' argument in `NNMatrix`. 
 ```{r}
 Check_Neighbors(NN.matrix$coords.ord, n.neighbors = M, NN.matrix, ind = 200)
 ```
@@ -240,13 +240,12 @@ The log-likelihood of $y(S)$ in \\eqref{eq:response_NNGP} is given by:
 In the code below, vector `U` saves the results of $(I-A)(y(S) - X(S)^\top\beta)$, and vector `V` saves all the diagonal elements of Matrix $D$ scaled by $\sigma^2$. With this notation, the log-likelihood can be simplified as
 
 \begin{equation} \label{eq: ll_code}
--{1 \over 2}\{\sum_{i = 1}^N\log{V_{i}} +N \log{(\sigma^2)}+  {1\over \sigma^2} U^\top(U \oslash V)\} \;,
+-{1 \over 2}\{\sum_{i = 1}^N\log{V_{i}} +N \log{(\sigma^2)}+  {1\over \sigma^2} U^\top(U \odot V)\} \;,
 \end{equation}
 
 where all the elements in the likelihood are vectors. 
 
-In the calculation of vector $U = (I-A)(y(S) - X(S)^\top\beta)$, since we know that
-matrix $A$ has at most $M$ nonzero elements and the index of nonzero elements is given in `NN_ind`, there is no need for saving the $n \times n$ matrix $I-A$. Instead, we use a for loop to calculate $U$. Within each iteration, we first use `NN_dist` and `NN_distM` along with the updated parameter to obtain $A(i, N(s_i))$ by \\eqref{eq: D_construct} and $D(i, i)$ by \\eqref{eq: A_construct}, then use `NN_ind` and $y(S) - X(S)^\top\beta$ to calculate the $i$ th element of $U$. The flops required in each iteration is in the order of $M^3$. 
+In the calculation of vector $U = (I-A)(y(S) - X(S)^\top\beta)$, since we know that matrix $A$ has at most $M$ nonzero elements on each row and the index of nonzero elements is given in `NN_ind`, there is no need for saving the $n \times n$ matrix $I-A$. Instead, we use a for loop to calculate $U$. Within each iteration, we first use `NN_dist` and `NN_distM` along with the updated parameter to obtain $A(i, N(s_i))$ by \\eqref{eq: D_construct} and $D(i, i)$ by \\eqref{eq: A_construct}, then use `NN_ind` and $y(S) - X(S)^\top\beta$ to calculate the $i$ th element of $U$. The flops required in each iteration is in the order of $M^3$. 
 
 ```{stan output.var = "test", eval = F}
   functions{
@@ -481,9 +480,9 @@ stan_trace(samples_wb1, pars = c("beta", "sigmasq", "tausq", "phi", "w_b1[1]",
                                  "w_b1[2]", "w_b1[3]", "w_b1[4]"))
 ```
 
-##Discussion
+## Discussion
 
-We recommend a response NNGP model for a large scale data analysis when the study focuses on the inference of parameter set $\theta$. On the other hand, latent NNGP models are preferred when the study needs the recovery of latent process $w(s)$. However, the convergence rate of the MCMC Chains from latent model could be prohibitively slow when the dataset is large, so we only recommend coding latent NNGP model in Stan when the dataset is small. For recovering latent process when the dataset is large, package spNNGP provides an algorithm for the latent NNGP model, which implements a sequential Gibbs sampler for updating the latent process. Conjugate NNGP models are also good options for recovering latent process $w(s)$. More details of NNGP based models can be found in @finley2017applying  
+We recommend a response NNGP model for a large scale data analysis when the study focuses on the inference of parameter set $\theta$. On the other hand, latent NNGP models are preferred when the study needs the recovery of latent process $w(s)$. However, the convergence rate of the MCMC Chains from latent model could be prohibitively slow when the dataset is large, so we only recommend coding latent NNGP model in Stan when the dataset is small. For recovering latent process when the dataset is large, package spNNGP provides an algorithm for the latent NNGP model, which implements a sequential Gibbs sampler for updating the latent process. Conjugate NNGP models are also good options for recovering latent process $w(s)$. More details of NNGP based models can be found in @finley2019efficient 
 
 # SessionInfo and References
 

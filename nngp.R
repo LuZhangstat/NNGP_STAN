@@ -46,7 +46,7 @@ ss = 3 * sqrt(2)       # scale parameter in the normal prior of sigma
 st = 3 * sqrt(0.1)     # scale parameter in the normal prior of tau     
 ap = 3; bp = 0.5       # shape and rate parameters in the Gamma prior of phi 
 
-#------------------------------ NNGP response ---------------------------------#
+#------------------------------ response NNGP ---------------------------------#
 options(mc.cores = parallel::detectCores())
 data <- list(N = N, M = M, P = P,
              Y = Y[NN.matrix$ord], X = X[NN.matrix$ord, ],
@@ -85,7 +85,7 @@ print(max_treedepth_by_chain)
 
 launch_shinystan(samples)
 
-#--------------------------- NNGP random effects ------------------------------#
+#------------------------------- latent NNGP ----------------------------------#
 options(mc.cores = parallel::detectCores())
 data <- list(N = N, M = M, P = P, 
              Y = Y[NN.matrix$ord], X = X[NN.matrix$ord, ], 
@@ -102,7 +102,7 @@ myinits <-list(list(beta = c(1, 5), sigma = 1, tau = 0.5, phi = 12,
 
 parameters <- c("beta", "sigmasq", "tausq", "phi", "w")
 samples_w <- stan(
-  file = "nngp_random.stan",
+  file = "nngp_latent.stan",
   data = data,
   init = myinits,
   pars = parameters,
@@ -131,7 +131,7 @@ print(max_treedepth_by_chain)
 
 launch_shinystan(samples_w)
 
-#----------------- NNGP random effects with w centered at b1 ------------------#
+#--------------------- latent NNGP with w centered at b1 ----------------------#
 options(mc.cores = parallel::detectCores())
 data <- list(N = N, M = M, P = P, 
              Y = Y[NN.matrix$ord], X = X[NN.matrix$ord, ], 
@@ -148,7 +148,7 @@ myinits <-list(list(beta = c(1, 5), sigma = 1, tau = 0.5, phi = 12,
 
 parameters <- c("beta", "sigmasq", "tausq", "phi", "w_b1")
 samples_wb1 <- stan(
-  file = "nngp_random_b1.stan",
+  file = "nngp_latent_b1.stan",
   data = data,
   init = myinits,
   pars = parameters,
